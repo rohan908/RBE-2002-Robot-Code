@@ -103,19 +103,19 @@ void Robot::HandleKeyCode(int16_t keyCode)
         {
             case VOLminus:
                 k = keyString.toInt() / 100.0;
-                Serial.print("Kp = "); Serial.println(k);
+                Serial.print(">Kp:"); Serial.println(k);
                 chassis.SetMotorKp(k);
                 keyString = "";
                 break;
             case PLAY_PAUSE:
                 k = keyString.toInt() / 100.0;
-                Serial.print("Ki = "); Serial.println(k);
+                Serial.print(">Ki:"); Serial.println(k);
                 chassis.SetMotorKi(k);
                 keyString = "";
                 break;
             case VOLplus:
                 k = keyString.toInt() / 100.0;
-                Serial.print("Kd = "); Serial.println(k);
+                Serial.print(">Kd:"); Serial.println(k);
                 chassis.SetMotorKd(k);
                 keyString = "";
                 break;

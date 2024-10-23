@@ -121,23 +121,30 @@ protected:
              */
             // Calculate the error in speed
             float error = targetSpeed - speed;
+            sumError += error;
+            
 
             // Calculate the effort from the PID gains
-            int16_t effort = Kp * error;
+            int16_t effort = Kp * error + Ki * sumError + Kd * (error - prevError);
 
             // Set the effort for the motor
             SetEffort(effort);
+            prevError = error;
 
             if(debug)
             {            
-                Serial.print(targetSpeed);
-                Serial.print('\t');
-                Serial.print(speed);
-                Serial.print('\t');
-                Serial.print(error);
-                Serial.print('\t');
-                Serial.print(effort / 10.0); // N.B. that we divide by 10 to make the graph cleaner
-                Serial.print('\n');
+                Serial.print(">targetSpeed:");
+                Serial.println(targetSpeed);
+                //Serial.print('\t');
+                Serial.print(">Speed:");
+                Serial.println(speed);
+                //Serial.print('\t');
+                Serial.print(">error:");
+                Serial.println(error);
+                //Serial.print('\t');
+                Serial.print(">effort:");
+                Serial.println(effort / 10.0); // N.B. that we divide by 10 to make the graph cleaner
+                //Serial.print('\n');
             }
         }    
     }
