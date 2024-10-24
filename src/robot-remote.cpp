@@ -120,7 +120,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
                 keyString = "";
                 break;
             case UP_ARROW:
-                if(!keyString.length()) chassis.SetWheelSpeeds(60, 0);
+                if(!keyString.length()) chassis.SetWheelSpeeds(120, 0);
                 break;
             case DOWN_ARROW:
                 if(!keyString.length()) chassis.SetWheelSpeeds(20, 0);
