@@ -39,8 +39,8 @@ protected:
     float lineSum = 0;
     float prevLineError = 0;
     float Kp_line = 10;
-    float Ki_line = 0;
-    float Kd_line = 2;
+    float Ki_line = 0.5;
+    float Kd_line = 4;
 
 
 
