@@ -95,6 +95,7 @@ void Robot::EnterLineFollowing(float speed)
     Serial.println(" -> LINING"); 
     baseSpeed = speed; 
     robotState = ROBOT_LINING;
+    lineSum = 0;
 }
 
 void Robot::LineFollowingUpdate(void)
@@ -102,11 +103,16 @@ void Robot::LineFollowingUpdate(void)
     if(robotState == ROBOT_LINING) 
     {
         // TODO: calculate the error in CalcError(), calc the effort, and update the motion
-        int16_t lineError = lineSensor.CalcError();
-        float turnEffort = 0;
-
+        float lineError = lineSensor.CalcError();
+        float turnEffort = Kp_line * lineError + Kp_line * prevLineError;
+        prevLineError = lineError;
         chassis.SetTwist(baseSpeed, turnEffort);
     }
+}
+
+
+void Robot::UpdateCalibration(void){
+    lineSensor.Calibrate();
 }
 
 /**
@@ -196,6 +202,8 @@ void Robot::RobotLoop(void)
         // add synchronous, post-motor-update actions here
 
     }
+
+    UpdateCalibration();
 
     /**
      * Check for any intersections

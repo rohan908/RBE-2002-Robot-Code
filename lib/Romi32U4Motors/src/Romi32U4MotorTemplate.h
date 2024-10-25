@@ -26,8 +26,8 @@ protected:
 
     // TODO: After you tune your motors, set the gains here.
     float Kp = 4;
-    float Ki = 2.05;
-    float Kd = 2.5;
+    float Ki = 1.25;
+    float Kd = 3.5;
 
     // Used to keep track of the target speed, in counts / interval.
     float targetSpeed = 0;
