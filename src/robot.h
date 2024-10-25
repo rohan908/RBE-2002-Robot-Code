@@ -38,9 +38,9 @@ protected:
     LineSensor lineSensor;
     float lineSum = 0;
     float prevLineError = 0;
-    float Kp_line = 10;
+    float Kp_line = 25;
     float Ki_line = 0.5;
-    float Kd_line = 4;
+    float Kd_line = 2;
 
 
 

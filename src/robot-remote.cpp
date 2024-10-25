@@ -42,7 +42,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
         }
         else if (robotCtrlMode == CTRL_CALIBRATING){
             EnterAutoMode(); EnterIdleState();
-            lineSensor.getCalibrationMinMax();
+            //lineSensor.getCalibrationMinMax();
         }
     }
 
@@ -183,6 +183,6 @@ void Robot::EnterSetupMode(void)
 
 void Robot::EnterCalibrating(void){
     Serial.println("-> Calibrating");
-    lineSensor.Calibrate();
+    //lineSensor.Calibrate();
     robotCtrlMode = CTRL_CALIBRATING;
 }
