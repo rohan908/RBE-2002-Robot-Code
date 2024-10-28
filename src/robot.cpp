@@ -104,16 +104,25 @@ void Robot::LineFollowingUpdate(void)
     {
         // TODO: calculate the error in CalcError(), calc the effort, and update the motion
         float lineError = lineSensor.CalcError();
-        float turnEffort = Kp_line * lineError + Kp_line * prevLineError;
+        float Kp = Kp_line;
+        float Kd = Kd_line;
+        if (baseSpeed < 41){
+            Kp = Kp_line_slow;
+            Kd = Kd_line_slow;
+        }
+        float turnEffort = Kp * lineError + Kd * prevLineError; /*+ Ki_line * lineSum*/
         prevLineError = lineError;
+        //lineSum += lineError;
         chassis.SetTwist(baseSpeed, turnEffort);
     }
 }
 
-
+/*
 void Robot::UpdateCalibration(void){
-    lineSensor.Calibrate();
-}
+    if (robotCtrlMode == CTRL_CALIBRATING){
+        lineSensor.Calibrate();
+    }
+}*/
 
 /**
  * As coded, HandleIntersection will make the robot drive out 3 intersections, turn around,
@@ -202,8 +211,7 @@ void Robot::RobotLoop(void)
         // add synchronous, post-motor-update actions here
 
     }
-
-    UpdateCalibration();
+    //if (robotCtrlMode == CTRL_CALIBRATING) UpdateCalibration();
 
     /**
      * Check for any intersections

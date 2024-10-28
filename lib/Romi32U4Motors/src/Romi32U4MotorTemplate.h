@@ -123,7 +123,7 @@ protected:
             float error = targetSpeed - speed;
             sumError += error;
 
-            sumError = (sumError > 350) ? 350 : sumError;
+            sumError = constrain(sumError, -350, 350);
             
 
             // Calculate the effort from the PID gains

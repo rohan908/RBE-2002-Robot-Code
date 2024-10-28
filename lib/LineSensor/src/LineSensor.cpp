@@ -24,125 +24,31 @@ void LineSensor::read(){
           sensorValues[i] += analogRead(lineSensorPins[i]);
       }
 
+      //Gotten from QTR Library
       // get the rounded average of the readings for each sensor
-      for (uint8_t i = 0; i < 6; i++)
+      for (uint8_t i = 0; i < NUM_SENSORS; i++)
       {
         sensorValues[i] = (sensorValues[i] + (numSamplesPerSensor >> 1)) /
           numSamplesPerSensor;
       }
 }
 
-void LineSensor::Calibrate(){
-  uint16_t maxSensorValues[numSensors];
-  uint16_t minSensorValues[numSensors];
-
-  // (Re)allocate and initialize the arrays if necessary.
-  // Memory allocation code from POLOLU code base
-  if (!calibration.initialized)
-  {
-    uint16_t * oldMaximum = calibration.maximum;
-    calibration.maximum = (uint16_t *)realloc(calibration.maximum,
-                                              sizeof(uint16_t) * numSensors);
-    if (calibration.maximum == nullptr)
-    {
-      // Memory allocation failed; don't continue.
-      free(oldMaximum); // deallocate any memory used by old array
-      return;
-    }
-
-    uint16_t * oldMinimum = calibration.minimum;
-    calibration.minimum = (uint16_t *)realloc(calibration.minimum,
-                                              sizeof(uint16_t) * numSensors);
-    if (calibration.minimum == nullptr)
-    {
-      // Memory allocation failed; don't continue.
-      free(oldMinimum); // deallocate any memory used by old array
-      return;
-    }
-
-    // Initialize the max and min calibrated values to values that
-    // will cause the first reading to update them.
-    for (uint8_t i = 0; i < numSensors; i++)
-    {
-      calibration.maximum[i] = 0;
-      calibration.minimum[i] = 9000;
-    }
-
-    calibration.initialized = true;
-  }
-
-  for (uint8_t j = 0; j < 10; j++)
-  {
-    read();
-
-    for (uint8_t i = 0; i < numSensors; i++)
-    {
-      // set the max we found THIS time
-      if ((j == 0) || (sensorValues[i] > maxSensorValues[i]))
-      {
-        maxSensorValues[i] = sensorValues[i];
-      }
-
-      // set the min we found THIS time
-      if ((j == 0) || (sensorValues[i] < minSensorValues[i]))
-      {
-        minSensorValues[i] = sensorValues[i];
-      }
-    }
-  }
-
-  // record the min and max calibration values
-  for (uint8_t i = 0; i < numSensors; i++)
-  {
-    // Update maximum only if the min of 10 readings was still higher than it
-    // (we got 10 readings in a row higher than the existing maximum).
-    if (minSensorValues[i] > calibration.maximum[i])
-    {
-      calibration.maximum[i] = minSensorValues[i];
-    }
-
-    // Update minimum only if the max of 10 readings was still lower than it
-    // (we got 10 readings in a row lower than the existing minimum).
-    if (maxSensorValues[i] < calibration.minimum[i])
-    {
-      calibration.minimum[i] = maxSensorValues[i];
-    }
-  }
-}
-
-void LineSensor::readCalibration(){
-    for (int  i = 0; i < numSensors; i++){
-        
-        uint16_t denominator = calibration.maximum[i] - calibration.minimum[i];
-        int16_t value = 0;
-
-        if (denominator != 0)
-        {
-            value = (((int32_t)sensorValues[i]) - calibration.minimum[i]) * 1000 / denominator;
-        }
-
-        if (value < 0) { value = 0; }
-        else if (value > 1000) { value = 1000; }
-
-        sensorValues[i] = value;
-    }
-
-}
 
 float LineSensor::readLineBlack(){
-    uint32_t avg= 0;
-    uint16_t sum = 0;
-    for (uint8_t i = 0; i < numSensors; i++)
-    {
-    uint16_t value = 1000 - sensorValues[i];
+  uint32_t avg= 0;
+  uint16_t sum = 0;
+  read();
+  for (uint8_t i = 0; i < numSensors; i++)
+  {
+    uint16_t value = 1000 - sensorValues[i]; //flips the values so black lines are what is good
     
-
-    // keep track of whether we see the line at all
+    //Modified from QTR Polulu Library
     if (value > 200) {onLine = true;
       Serial.println("On Line!");
     }
 
     // only average in values that are above a noise threshold
+    // Weighted average
     if (value > 50)
     {
       avg += (uint32_t)value * (i * 1000);
@@ -152,18 +58,20 @@ float LineSensor::readLineBlack(){
 
   if (!onLine)
   {
+    Serial.println("Not On Line!");
     // If it last read to the left of center, return 0.
     if (lastPosition < (numSensors - 1) * 1000 / 2)
     {
       return 0;
     }
-    // If it last read to the right of center, return the max.
+    // If it last read to the right of center, return the max (5000).
     else
     {
       return (numSensors - 1) * 1000;
     }
   }
 
+  // results in a position between 0 to 5000 where 0 is the farthest left sensor and 5000 is the farthest right sensor
   lastPosition = avg / sum;
   return lastPosition;
 }
@@ -172,6 +80,12 @@ float LineSensor::readLineBlack(){
 float LineSensor::CalcError(void) 
 {
     float position = readLineBlack();
+    if (position == 5000){ //went off the line
+      return 5;
+    }
+    if (position == 0){//went off the line
+      return -5;
+    }
     return (position - 2500) / 1000;
 
 }

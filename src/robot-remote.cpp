@@ -42,6 +42,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
         }
         else if (robotCtrlMode == CTRL_CALIBRATING){
             EnterAutoMode(); EnterIdleState();
+            //lineSensor.getCalibrationMinMax();
         }
     }
 
@@ -129,7 +130,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
                 keyString = "";
                 break;
             case UP_ARROW:
-                if(!keyString.length()) chassis.SetWheelSpeeds(80, 0);
+                if(!keyString.length()) chassis.SetWheelSpeeds(60, 0);
                 break;
             case DOWN_ARROW:
                 if(!keyString.length()) chassis.SetWheelSpeeds(20, 0);
@@ -182,6 +183,6 @@ void Robot::EnterSetupMode(void)
 
 void Robot::EnterCalibrating(void){
     Serial.println("-> Calibrating");
-    lineSensor.Calibrate();
+    //lineSensor.Calibrate();
     robotCtrlMode = CTRL_CALIBRATING;
 }

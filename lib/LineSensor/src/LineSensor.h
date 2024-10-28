@@ -26,18 +26,6 @@ protected:
     const byte lineSensorPins[NUM_SENSORS] = {LINE_SENSOR_1, LINE_SENSOR_3, LINE_SENSOR_5, LINE_SENSOR_7, LINE_SENSOR_9, LINE_SENSOR_11};
 
     uint16_t sensorValues[NUM_SENSORS];
-   
-    struct CalibrationData
-    {
-      /// Whether array pointers have been allocated and initialized.
-      bool initialized = false;
-      /// Lowest readings seen during calibration.
-      uint16_t * minimum = nullptr;
-      /// Highest readings seen during calibration.
-      uint16_t * maximum = nullptr;
-    };
-
-    CalibrationData calibration;
 
 public:
 
@@ -49,4 +37,5 @@ public:
     void read(void);
     void readCalibration(void);
     float readLineBlack(void);
+    void getCalibrationMinMax(void);
 };
