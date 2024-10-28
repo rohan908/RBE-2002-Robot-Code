@@ -110,7 +110,7 @@ void Robot::LineFollowingUpdate(void)
             Kp = Kp_line_slow;
             Kd = Kd_line_slow;
         }
-        float turnEffort = Kp * lineError + Kd * prevLineError; /*+ Ki_line * lineSum*/
+        float turnEffort = Kp * lineError + Kd * (lineError - prevLineError); /*+ Ki_line * lineSum*/
         prevLineError = lineError;
         //lineSum += lineError;
         chassis.SetTwist(baseSpeed, turnEffort);
