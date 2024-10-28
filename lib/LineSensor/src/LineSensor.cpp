@@ -40,15 +40,15 @@ float LineSensor::readLineBlack(){
   read();
   for (uint8_t i = 0; i < numSensors; i++)
   {
-    uint16_t value = 1000 - sensorValues[i];
+    uint16_t value = 1000 - sensorValues[i]; //flips the values so black lines are what is good
     
-    //Modified from QTR Library
-    // keep track of whether we see the line at all
+    //Modified from QTR Polulu Library
     if (value > 200) {onLine = true;
       Serial.println("On Line!");
     }
 
     // only average in values that are above a noise threshold
+    // Weighted average
     if (value > 50)
     {
       avg += (uint32_t)value * (i * 1000);
@@ -64,14 +64,14 @@ float LineSensor::readLineBlack(){
     {
       return 0;
     }
-    // If it last read to the right of center, return the max.
+    // If it last read to the right of center, return the max (5000).
     else
     {
       return (numSensors - 1) * 1000;
     }
   }
 
-  // results in a position between 0 to 6000 where 0 is the farthest left sensor and 6000 is the farthest right sensor
+  // results in a position between 0 to 5000 where 0 is the farthest left sensor and 5000 is the farthest right sensor
   lastPosition = avg / sum;
   return lastPosition;
 }

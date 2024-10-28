@@ -38,10 +38,11 @@ protected:
     LineSensor lineSensor;
     float lineSum = 0;
     float prevLineError = 0;
-    float Kp_line = 25;
+    float Kp_line = 28.5;
     float Ki_line = 0.5;
-    float Kd_line = 2;
-
+    float Kd_line = 3.5;
+    float Kp_line_slow = 10;
+    float Kd_line_slow = 4;
 
 
 

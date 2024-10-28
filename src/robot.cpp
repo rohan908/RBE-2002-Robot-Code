@@ -104,7 +104,13 @@ void Robot::LineFollowingUpdate(void)
     {
         // TODO: calculate the error in CalcError(), calc the effort, and update the motion
         float lineError = lineSensor.CalcError();
-        float turnEffort = Kp_line * lineError + Kd_line * prevLineError; /*+ Ki_line * lineSum*/
+        float Kp = Kp_line;
+        float Kd = Kd_line;
+        if (baseSpeed < 41){
+            Kp = Kp_line_slow;
+            Kd = Kd_line_slow;
+        }
+        float turnEffort = Kp * lineError + Kd * prevLineError; /*+ Ki_line * lineSum*/
         prevLineError = lineError;
         //lineSum += lineError;
         chassis.SetTwist(baseSpeed, turnEffort);
