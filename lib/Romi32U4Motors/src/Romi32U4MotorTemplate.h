@@ -25,9 +25,9 @@ protected:
     volatile CTRL_MODE ctrlMode = CTRL_DIRECT;
 
     // TODO: After you tune your motors, set the gains here.
-    float Kp = 1;
-    float Ki = 0;
-    float Kd = 0;
+    float Kp = 4;
+    float Ki = 1.25;
+    float Kd = 3.5;
 
     // Used to keep track of the target speed, in counts / interval.
     float targetSpeed = 0;
@@ -122,6 +122,8 @@ protected:
             // Calculate the error in speed
             float error = targetSpeed - speed;
             sumError += error;
+
+            sumError = constrain(sumError, -350, 350);
             
 
             // Calculate the effort from the PID gains
@@ -143,8 +145,10 @@ protected:
                 Serial.println(error);
                 //Serial.print('\t');
                 Serial.print(">effort:");
-                Serial.println(effort / 10.0); // N.B. that we divide by 10 to make the graph cleaner
+                Serial.println(effort); // N.B. that we divide by 10 to make the graph cleaner
                 //Serial.print('\n');
+                Serial.print(">KiSum:");
+                Serial.println(sumError);
             }
         }    
     }

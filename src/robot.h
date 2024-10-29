@@ -15,6 +15,7 @@ protected:
         CTRL_TELEOP,
         CTRL_AUTO,
         CTRL_SETUP,
+        CTRL_CALIBRATING
     };
     ROBOT_CTRL_MODE robotCtrlMode = CTRL_TELEOP;
 
@@ -35,6 +36,15 @@ protected:
 
     /* Line sensor */
     LineSensor lineSensor;
+    float lineSum = 0;
+    float prevLineError = 0;
+    float Kp_line = 30;
+    float Ki_line = 0.5;
+    float Kd_line = 10;
+    float Kp_line_slow = 15;
+    float Kd_line_slow = 6;
+
+
 
     /* To add later: rangefinder, camera, etc.*/
 
@@ -86,6 +96,9 @@ protected:
      */
     void EnterLineFollowing(float speed);
     void LineFollowingUpdate(void);
+
+    void EnterCalibrating(void);
+    void UpdateCalibration(void);
 
     bool CheckIntersection(void) {return lineSensor.CheckIntersection();}
     void HandleIntersection(void);

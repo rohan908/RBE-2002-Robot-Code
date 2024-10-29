@@ -35,6 +35,16 @@ void Robot::HandleKeyCode(int16_t keyCode)
         if(robotCtrlMode == CTRL_AUTO) {EnterTeleopMode(); EnterIdleState();}
         else if(robotCtrlMode == CTRL_TELEOP) {EnterAutoMode(); EnterIdleState();}
     }
+    
+    else if(keyCode == VOLminus){
+        if (robotCtrlMode == CTRL_AUTO){
+            EnterCalibrating(); EnterIdleState();
+        }
+        else if (robotCtrlMode == CTRL_CALIBRATING){
+            EnterAutoMode(); EnterIdleState();
+            //lineSensor.getCalibrationMinMax();
+        }
+    }
 
     /**
      * AUTO commands
@@ -168,4 +178,11 @@ void Robot::EnterSetupMode(void)
 {
     Serial.println("-> SETUP");
     robotCtrlMode = CTRL_SETUP;
+}
+
+
+void Robot::EnterCalibrating(void){
+    Serial.println("-> Calibrating");
+    //lineSensor.Calibrate();
+    robotCtrlMode = CTRL_CALIBRATING;
 }
