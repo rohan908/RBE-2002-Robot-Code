@@ -43,13 +43,15 @@ void Robot::EnterTurn(int numTurns)
     direction = (direction + numTurns) % 4;
     direction = direction < 0 ? direction + 4 : direction;
     targetHeading = (numTurns * 90) + eulerAngles.z;
+    isTurn90deg = numTurns % 2 ? true : false;
 }
 
 void Robot::TurningUpdate(void){
     float error = (targetHeading - eulerAngles.z) * PI / 180;
     turnErrorSum += error;
     float turnEffort = Kp_turn * error + Kd_turn * (error - turnPrevError) + Ki_turn * turnErrorSum;
-    chassis.SetTwist(0, turnEffort);
+    uint8_t speed = isTurn90deg ? 10 : 0;
+    chassis.SetTwist(speed, turnEffort);
     turnPrevError = error;
 }
 
@@ -72,8 +74,8 @@ bool Robot::CheckTurnComplete(void)
 void Robot::HandleTurnComplete(void)
 {
     if (robotState == ROBOT_TURNING){
-        Serial.println(" -> IDLE");
-        robotState = ROBOT_IDLE;
+        Serial.println(" -> LINING");
+        robotState = ROBOT_LINING;
     }
 }
 
@@ -132,10 +134,9 @@ void Robot::HandleOrientationUpdate(void)
 /**
  * Functions related to line following and intersection detection.
  */
-void Robot::EnterLineFollowing(float speed) 
+void Robot::EnterLineFollowing() 
 {
     Serial.println(" -> LINING"); 
-    baseSpeed = speed; 
     robotState = ROBOT_LINING;
     lineSum = 0;
 }
@@ -172,7 +173,55 @@ void Robot::UpdateCalibration(void){
  */
 void Robot::HandleIntersection(void)
 {
-    Serial.print("X:");
+    if(iGrid == 0 && jGrid == 0 && iGrid == iTarget && jGrid == jTarget){
+        Serial.println("-> IDLE");
+        robotState == ROBOT_IDLE;
+    }
+
+    switch (direction){
+        case 0:
+            jGrid++;
+            break;
+        case 1:
+            iGrid--;
+            break;
+        case 2:
+            jGrid--;
+            break;
+        case 3:
+            iGrid++;
+            break;
+    }
+    uint8_t targetDirection;
+    if (iGrid == iTarget){
+        if (jGrid == jTarget){
+            iTarget = 0;
+            jTarget = 0;
+        }
+    }
+    if (iGrid == iTarget) {
+        //if iTarget - iGrid == -1, then 
+        if (iTarget - iGrid < 0){
+            targetDirection = 1; //go West
+        }
+        else {
+            targetDirection = 3; //go East
+        }
+    }
+    else if (jGrid == jTarget){
+        if (jTarget - jGrid < 0){
+            targetDirection = 2; //go South
+        }
+        else {
+            targetDirection = 0; //go North
+        }
+    }
+
+    if (targetDirection != direction){
+        uint8_t numTurns = direction - targetDirection;
+        numTurns = numTurns < 0 ? numTurns + 4 : numTurns;
+        EnterTurn(numTurns);
+    }
     
 }
 

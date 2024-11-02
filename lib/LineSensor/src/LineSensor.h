@@ -12,11 +12,14 @@
 #define LINE_SENSOR_11 A11 
 #define NUM_SENSORS 6
 
+#define DARK_THRESHOLD 500;
+
 class LineSensor
 {
 protected:
 
     bool onLine = false;
+    bool isLineBlack = false;
     int32_t lastPosition = 0;
     bool prevOnIntersection = false;
     unsigned char numSensors = NUM_SENSORS;
@@ -36,6 +39,6 @@ public:
     void Calibrate(void);
     void read(void);
     void readCalibration(void);
-    float readLineBlack(void);
+    float readLine(void);
     void getCalibrationMinMax(void);
 };

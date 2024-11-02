@@ -29,6 +29,7 @@ protected:
         ROBOT_LINING,
         ROBOT_TURNING,
     };
+
     ROBOT_STATE robotState = ROBOT_IDLE;
 
     /* Define the chassis*/
@@ -70,13 +71,15 @@ protected:
     float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
-    float baseSpeed = 0;
+    float baseSpeed = 20;
 
     uint8_t iGrid = 0, jGrid = 0;
     uint8_t direction = 0; //NORTH -> 0; WEST -> 1; SOUTH -> 2; EAST -> 3;
     // use direction %= 4 to account for loop arounds (direction overflow);
 
     uint8_t iTarget, jTarget = 0;
+
+    bool isTurn90deg;
 
 
 
@@ -110,7 +113,7 @@ protected:
     /**
      * Line following and navigation routines.
      */
-    void EnterLineFollowing(float speed);
+    void EnterLineFollowing();
     void LineFollowingUpdate(void);
 
     void EnterCalibrating(void);

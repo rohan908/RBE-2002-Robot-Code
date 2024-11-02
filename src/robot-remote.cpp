@@ -38,7 +38,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
         else if(robotCtrlMode == CTRL_TELEOP) {EnterAutoMode(); EnterIdleState();}
     }
     
-    else if(keyCode == VOLminus){
+    /*else if(keyCode == VOLminus){
         if (robotCtrlMode == CTRL_AUTO){
             EnterCalibrating(); EnterIdleState();
         }
@@ -47,6 +47,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
             //lineSensor.getCalibrationMinMax();
         }
     }
+    */
 
     /**
      * AUTO commands
@@ -56,7 +57,15 @@ void Robot::HandleKeyCode(int16_t keyCode)
         switch(keyCode)
         {
             case REWIND:
-                EnterLineFollowing(keyString.toInt());
+                EnterLineFollowing();
+                keyString = "";
+                break;
+            case VOLminus:
+                iGrid = keyString.toInt();
+                keyString = "";
+                break;
+            case VOLplus:
+                jGrid = keyString.toInt();
                 keyString = "";
                 break;
             case NUM_1:
