@@ -17,7 +17,7 @@ protected:
         CTRL_SETUP,
         CTRL_CALIBRATING
     };
-    ROBOT_CTRL_MODE robotCtrlMode = CTRL_TELEOP;
+    ROBOT_CTRL_MODE robotCtrlMode = CTRL_AUTO;
 
     /**
      * robotState is used to track the current task of the robot. You will add new states as 
@@ -44,6 +44,13 @@ protected:
     float Kp_line_slow = 15;
     float Kd_line_slow = 6;
 
+    /*Turning PID*/
+    float Kp_turn = 5.2;
+    float Kd_turn  = 1;
+    float Ki_turn = 0;
+    float turnErrorSum = 0;
+    float turnPrevError = 0;
+
 
 
     /* To add later: rangefinder, camera, etc.*/
@@ -60,10 +67,18 @@ protected:
     LSM6::vector<float> eulerAngles;
 
     /* targetHeading is used for commanding the robot to turn */
-    float targetHeading;
+    float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
     float baseSpeed = 0;
+
+    uint8_t iGrid = 0, jGrid = 0;
+    uint8_t direction = 0; //NORTH -> 0; WEST -> 1; SOUTH -> 2; EAST -> 3;
+    // use direction %= 4 to account for loop arounds (direction overflow);
+
+    uint8_t iTarget, jTarget = 0;
+
+
 
     /**
      * For tracking the motion of the Romi. We keep track of the intersection we came
@@ -73,6 +88,7 @@ protected:
     enum INTERSECTION {NODE_START, NODE_1, NODE_2, NODE_3,};
     INTERSECTION nodeFrom = NODE_START;
     INTERSECTION nodeTo = NODE_1;
+
     
 public:
     Robot(void) {keyString.reserve(8);} //reserve some memory to avoid reallocation
@@ -103,9 +119,10 @@ protected:
     bool CheckIntersection(void) {return lineSensor.CheckIntersection();}
     void HandleIntersection(void);
 
-    void EnterTurn(float angleInDeg);
+    void EnterTurn(int numTurns);
     bool CheckTurnComplete(void);
     void HandleTurnComplete(void);
+    void TurningUpdate(void);
 
     /* IMU routines */
     void HandleOrientationUpdate(void);

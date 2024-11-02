@@ -29,8 +29,8 @@ LSM6::LSM6(void)
 bool LSM6::checkForNewData(void)
 {
   bool retVal = false;
-  if(getStatus() & 0x01)
-  {
+  if(getStatus() & 0x02) //STATUS_REG bits are => 0000 Enable Temp Gyro Accel (We want gyro)
+  { //0000 = 0 0010 = 2
     read();
 
     retVal = true;
@@ -228,11 +228,11 @@ void LSM6::enableDefault(void)
   {
     // Set the gyro full scale and data rate
     setFullScaleGyro(GYRO_FS245);
-    setGyroDataOutputRate(ODR13);
+    setGyroDataOutputRate(ODR52);
 
     // Set the accelerometer full scale and data rate
     setFullScaleAcc(ACC_FS2);
-    setAccDataOutputRate(ODR13);
+    setAccDataOutputRate(ODR52);
 
     // Auto-increment
     writeReg(CTRL3_C, 0x04);

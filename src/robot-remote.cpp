@@ -23,11 +23,13 @@ void Robot::HandleKeyCode(int16_t keyCode)
     if(keyCode == STOP_MODE) EnterIdleState();
 
     // The SETUP key is used for tuning motor gains
+    
     else if(keyCode == SETUP_BTN)
     {
         if(robotCtrlMode == CTRL_SETUP) {EnterTeleopMode(); EnterIdleState();}
         else {EnterSetupMode(); EnterIdleState();}
     }
+    
 
     // If PLAY is pressed, it toggles control mode (setup -> teleop)
     else if(keyCode == PLAY_PAUSE) 
@@ -134,6 +136,12 @@ void Robot::HandleKeyCode(int16_t keyCode)
                 break;
             case DOWN_ARROW:
                 if(!keyString.length()) chassis.SetWheelSpeeds(20, 0);
+                break;
+            case LEFT_ARROW:
+                if(!keyString.length()) EnterTurn(1);
+                break;
+            case RIGHT_ARROW:
+                if(!keyString.length()) EnterTurn(-1);
                 break;
             case ENTER_SAVE:
                 keyString = "";

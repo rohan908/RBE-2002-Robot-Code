@@ -44,7 +44,7 @@ float LineSensor::readLineBlack(){
     
     //Modified from QTR Polulu Library
     if (value > 200) {onLine = true;
-      Serial.println("On Line!");
+      //Serial.println("On Line!");
     }
 
     // only average in values that are above a noise threshold

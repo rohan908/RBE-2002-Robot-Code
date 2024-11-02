@@ -108,7 +108,9 @@ class LSM6
     vector<int16_t> a; // accelerometer readings
     vector<int16_t> g; // gyro readings
 
-    const float SIGMA = 0.95; // for updating bias
+    const float ZETA_X = 0.95; // for updating bias
+    const float ZETA_Y = 0.95; // for updating bias
+    const float ZETA_Z = 0.98; // for updating bias
 
 public:
     LSM6(void);
@@ -141,10 +143,10 @@ public:
 
     vector<float> updateGyroBias(void) 
     {
-      /**
-       * TODO: add a low-pass filter to update the bias
-       */
-      
+      gyroBias.x = ZETA_X * gyroBias.x + (1-ZETA_X) * g.x;
+      gyroBias.y = ZETA_Y * gyroBias.y + (1-ZETA_Y) * g.y;
+      gyroBias.z = ZETA_Z * gyroBias.z + (1-ZETA_Z) * g.z;
+
       return gyroBias;
     }
 

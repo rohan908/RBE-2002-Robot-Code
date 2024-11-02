@@ -1,5 +1,6 @@
 #include "robot.h"
 #include <IRdecoder.h>
+#include <FastGPIO.h>
 
 void Robot::InitializeRobot(void)
 {
@@ -35,32 +36,45 @@ void Robot::EnterIdleState(void)
 /**
  * Functions related to the IMU (turning; ramp detection)
  */
-void Robot::EnterTurn(float angleInDeg)
+void Robot::EnterTurn(int numTurns)
 {
     Serial.println(" -> TURN");
     robotState = ROBOT_TURNING;
+    direction = (direction + numTurns) % 4;
+    direction = direction < 0 ? direction + 4 : direction;
+    targetHeading = (numTurns * 90) + eulerAngles.z;
+}
 
-    /**
-     * TODO: Add code to initiate the turn and set the target
-     */
+void Robot::TurningUpdate(void){
+    float error = (targetHeading - eulerAngles.z) * PI / 180;
+    turnErrorSum += error;
+    float turnEffort = Kp_turn * error + Kd_turn * (error - turnPrevError) + Ki_turn * turnErrorSum;
+    chassis.SetTwist(0, turnEffort);
+    turnPrevError = error;
 }
 
 bool Robot::CheckTurnComplete(void)
 {
     bool retVal = false;
 
-    /**
-     * TODO: add a checker to detect when the turn is complete
-     */
+    if (fabs(targetHeading - eulerAngles.z) < 0.01){
+        retVal = true;
+    }
+
+    #ifdef __MOTOR_DEBUG__
+    Serial.print(">targetHeading:");
+    Serial.println(targetHeading);
+    #endif
 
     return retVal;
 }
 
 void Robot::HandleTurnComplete(void)
 {
-    /**
-     * TODO: Add code to handle the completed turn
-     */
+    if (robotState == ROBOT_TURNING){
+        Serial.println(" -> IDLE");
+        robotState = ROBOT_IDLE;
+    }
 }
 
 /**
@@ -79,11 +93,39 @@ void Robot::HandleOrientationUpdate(void)
 
     else // update orientation
     {
-        // TODO: update the orientation
+        eulerAngles.x = prevEulerAngles.x + (imu.mdpsPerLSB / 1000) * (imu.g.x - imu.gyroBias.x) / imu.gyroODR; //divide the ODR since its in Hz
+        eulerAngles.y = prevEulerAngles.y + (imu.mdpsPerLSB / 1000) * (imu.g.y - imu.gyroBias.y) / imu.gyroODR; //divide by 1000 to convert millidegrees ps to degrees ps
+        eulerAngles.z = prevEulerAngles.z + (imu.mdpsPerLSB / 1000)* (imu.g.z - imu.gyroBias.z) / imu.gyroODR;
     }
 
 #ifdef __IMU_DEBUG__
+    /*
+    Serial.print(">Biased Yaw:");
+    Serial.println(imu.g.z);
+    Serial.print(">Biased Roll:");
+    Serial.println(imu.g.x);
+    Serial.print(">Biased Pitch:");
+    Serial.println(imu.g.y);
+
+    Serial.print(">UnBiased Yaw:");
+    Serial.println(imu.g.z - imu.gyroBias.z);
+    Serial.print(">UnBiased Roll:");
+    Serial.println(imu.g.x - imu.gyroBias.x);
+    Serial.print(">UnBiased Pitch:");
+    Serial.println(imu.g.y - imu.gyroBias.y);
+
+    Serial.print(">Yaw Bias:");
+    Serial.println(imu.gyroBias.z);
+    */
+
+
+
+    Serial.print(">Yaw:");
     Serial.println(eulerAngles.z);
+    Serial.print(">Roll:");
+    Serial.println(eulerAngles.x);
+    Serial.print(">Pitch:");
+    Serial.println(eulerAngles.y);
 #endif
 }
 
@@ -130,56 +172,8 @@ void Robot::UpdateCalibration(void){
  */
 void Robot::HandleIntersection(void)
 {
-    Serial.print("X: ");
-    if(robotState == ROBOT_LINING) 
-    {
-        switch(nodeTo)
-        {
-            case NODE_START:
-                if(nodeFrom == NODE_1)
-                    EnterIdleState();
-                break;
-            case NODE_1:
-                // By default, we'll continue on straight
-                if(nodeFrom == NODE_START) 
-                {
-                    nodeTo = NODE_2;
-                }
-                else if(nodeFrom == NODE_2)
-                {
-                    nodeTo = NODE_START;
-                }
-                nodeFrom = NODE_1;
-                break;
-            case NODE_2:
-                // By default, we'll continue on straight
-                if(nodeFrom == NODE_1) 
-                {
-                    nodeTo = NODE_3;
-                }
-                else if(nodeFrom == NODE_3)
-                {
-                    nodeTo = NODE_1;
-                }
-                nodeFrom = NODE_2;
-                break;
-            case NODE_3:
-                // By default, we'll bang a u-ey
-                if(nodeFrom == NODE_2) 
-                {
-                    nodeTo = NODE_2;
-                    nodeFrom = NODE_3;
-                    EnterTurn(180);
-                }
-                break;
-            default:
-                break;
-        }
-        Serial.print(nodeFrom);
-        Serial.print("->");
-        Serial.print(nodeTo);
-        Serial.print('\n');
-    }
+    Serial.print("X:");
+    
 }
 
 void Robot::RobotLoop(void) 
@@ -206,6 +200,11 @@ void Robot::RobotLoop(void)
             LineFollowingUpdate();
         }
 
+        if(robotState == ROBOT_TURNING){
+            TurningUpdate();
+        }
+
+
         chassis.UpdateMotors();
 
         // add synchronous, post-motor-update actions here
@@ -217,7 +216,6 @@ void Robot::RobotLoop(void)
      * Check for any intersections
      */
     if(lineSensor.CheckIntersection()) HandleIntersection();
-    if(CheckTurnComplete()) HandleTurnComplete();
 
     /**
      * Check for an IMU update
@@ -225,6 +223,7 @@ void Robot::RobotLoop(void)
     if(imu.checkForNewData())
     {
         HandleOrientationUpdate();
+        if(CheckTurnComplete()) HandleTurnComplete();
     }
 }
 
