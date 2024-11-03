@@ -20,7 +20,14 @@ void Robot::HandleKeyCode(int16_t keyCode)
     Serial.println(keyCode);
 
     // Regardless of current state, if ENTER is pressed, go to idle state
-    if(keyCode == STOP_MODE) EnterIdleState();
+    if(keyCode == STOP_MODE){
+        iGrid = 0;
+        jGrid = 0;
+        iTarget = iTargetInital;
+        jTarget = jTargetInital;
+        direction = 0;
+        EnterIdleState();
+    }
 
     // The SETUP key is used for tuning motor gains
     
@@ -57,15 +64,15 @@ void Robot::HandleKeyCode(int16_t keyCode)
         switch(keyCode)
         {
             case REWIND:
-                EnterLineFollowing();
+                EnterLineFollowing(keyString.toInt());
                 keyString = "";
                 break;
             case VOLminus:
-                iGrid = keyString.toInt();
+                iTarget = keyString.toInt();
                 keyString = "";
                 break;
             case VOLplus:
-                jGrid = keyString.toInt();
+                jTarget = keyString.toInt();
                 keyString = "";
                 break;
             case NUM_1:

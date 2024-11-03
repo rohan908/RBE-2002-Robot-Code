@@ -47,9 +47,14 @@ protected:
     // Maximum effort
     int16_t maxEffort = 420;
 
+    //StartingEncoder and TargetEncoder for moving distance
+    int32_t startingEncoder;
+    int32_t targetEncoder;
+
+
     // Keeps track of encoder changes
-    volatile int16_t prevCount;
-    volatile int16_t encCount;
+    volatile int32_t prevCount;
+    volatile int32_t encCount;
     volatile int8_t lastA;
     volatile int8_t lastB;
 
@@ -57,6 +62,8 @@ protected:
      * 
      */
     virtual void SetEffort(int16_t effort) = 0;
+
+
 
     /** 
      * Used to set the motor _effort_ directly, which is mostly used for testing.
@@ -68,6 +75,7 @@ protected:
         ctrlMode = CTRL_DIRECT;
         SetEffort(effort);
     }
+
 
     /**
      * calcEncoderDelta() takes a 'snapshot of the encoders and 
@@ -195,6 +203,11 @@ protected:
 
 public:
     void SetPIDCoeffs(float p, float i, float d) {Kp = p; Ki = i; Kd = d; sumError = 0;}
+
+    void saveStartingEncoder(){
+        startingEncoder = encCount;
+    }
+    
 };
 
 template <uint8_t encXOR, uint8_t encB, uint8_t PWM, uint8_t DIR, uint8_t OCR> 

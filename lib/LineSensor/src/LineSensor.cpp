@@ -39,9 +39,7 @@ float LineSensor::readLine(void){
   uint16_t value;
   for (uint8_t i = 0; i < numSensors; i++)
   {
-    if (isLineBlack){
-      value = 1000 - sensorValues[i]; //flips the values so black lines are what is good
-    }
+    value = isLineBlack ? 1000 - sensorValues[i] : sensorValues[i]; //flips the values if its sensing black lines
     
     //Modified from QTR Polulu Library
     if (value > 200) {onLine = true;
@@ -59,7 +57,7 @@ float LineSensor::readLine(void){
 
   if (!onLine)
   {
-    Serial.println("Not On Line!");
+    //Serial.println("Not On Line!");
     // If it last read to the left of center, return 0.
     if (lastPosition < (numSensors - 1) * 1000 / 2)
     {
@@ -103,8 +101,8 @@ bool LineSensor::CheckIntersection(void)
     isRightDark = sensorValues[numSensors - 1] > DARK_THRESHOLD;
   }
   else{
-    isLeftDark = sensorValues[0] < DARK_THRESHOLD;
-    isRightDark = sensorValues[numSensors - 1] < DARK_THRESHOLD;
+    isLeftDark = sensorValues[0] < WHITE_THRESHOLD;
+    isRightDark = sensorValues[numSensors - 1] < WHITE_THRESHOLD;
   }
   
 
@@ -112,6 +110,7 @@ bool LineSensor::CheckIntersection(void)
   if(onIntersection && !prevOnIntersection) retVal = true;
 
   prevOnIntersection = onIntersection;
+
 
   return retVal;
     

@@ -12,7 +12,8 @@
 #define LINE_SENSOR_11 A11 
 #define NUM_SENSORS 6
 
-#define DARK_THRESHOLD 500;
+#define DARK_THRESHOLD 900;
+#define WHITE_THRESHOLD 50;
 
 class LineSensor
 {

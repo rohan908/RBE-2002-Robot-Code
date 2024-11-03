@@ -28,6 +28,7 @@ protected:
         ROBOT_IDLE, 
         ROBOT_LINING,
         ROBOT_TURNING,
+        ROBOT_MOVE_DISTANCE,
     };
 
     ROBOT_STATE robotState = ROBOT_IDLE;
@@ -39,18 +40,21 @@ protected:
     LineSensor lineSensor;
     float lineSum = 0;
     float prevLineError = 0;
-    float Kp_line = 30;
-    float Ki_line = 0.5;
-    float Kd_line = 10;
-    float Kp_line_slow = 15;
-    float Kd_line_slow = 6;
+    float Kp_line_fast = 30;
+    float Ki_line_fast = 0.5;
+    float Kd_line_fast = 10;
+    float Kp_line_medium = 10;
+    float Kd_line_medium = 6;
+    float Kp_line_slow = 2;
+    float Kd_line_slow = 1;
 
     /*Turning PID*/
-    float Kp_turn = 5.2;
-    float Kd_turn  = 1;
-    float Ki_turn = 0;
+    float Kp_turn = 4; //original: 5.2
+    float Kd_turn  = 4;
+    float Ki_turn = 0.01;
     float turnErrorSum = 0;
     float turnPrevError = 0;
+    const float TURN_THRESHOLD = 1;
 
 
 
@@ -71,15 +75,21 @@ protected:
     float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
-    float baseSpeed = 20;
+    float baseSpeed = 0;
 
-    uint8_t iGrid = 0, jGrid = 0;
-    uint8_t direction = 0; //NORTH -> 0; WEST -> 1; SOUTH -> 2; EAST -> 3;
+    int8_t iGrid = 0, jGrid = 0;
+    int8_t direction = 0; //NORTH -> 0; WEST -> 1; SOUTH -> 2; EAST -> 3;
     // use direction %= 4 to account for loop arounds (direction overflow);
 
-    uint8_t iTarget, jTarget = 0;
+    int8_t iTargetInital = 2;
+    int8_t jTargetInital = 2;
+    int8_t iTarget = iTargetInital;
+    int8_t jTarget = jTargetInital;
 
-    bool isTurn90deg;
+    float moveDistance;
+
+
+
 
 
 
@@ -114,6 +124,7 @@ protected:
      * Line following and navigation routines.
      */
     void EnterLineFollowing();
+    void EnterLineFollowing(int speed);
     void LineFollowingUpdate(void);
 
     void EnterCalibrating(void);
@@ -126,10 +137,18 @@ protected:
     bool CheckTurnComplete(void);
     void HandleTurnComplete(void);
     void TurningUpdate(void);
+    void CalculateIntersection(void);
 
+    
+    bool checkMoving(void);
+    void handleMovingComplete(void);
+    void enterMoving(float distance);
     /* IMU routines */
     void HandleOrientationUpdate(void);
 
     /* For commanding the lifter servo */
     void SetLifter(uint16_t position);
+
+
+    void plotVariable(String name, double var);
 };

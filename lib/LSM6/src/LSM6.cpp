@@ -227,8 +227,8 @@ void LSM6::enableDefault(void)
   if (_device == device_DS33)
   {
     // Set the gyro full scale and data rate
-    setFullScaleGyro(GYRO_FS245);
-    setGyroDataOutputRate(ODR52);
+    setFullScaleGyro(GYRO_FS1000);
+    setGyroDataOutputRate(ODR104);
 
     // Set the accelerometer full scale and data rate
     setFullScaleAcc(ACC_FS2);

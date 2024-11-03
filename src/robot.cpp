@@ -43,23 +43,23 @@ void Robot::EnterTurn(int numTurns)
     direction = (direction + numTurns) % 4;
     direction = direction < 0 ? direction + 4 : direction;
     targetHeading = (numTurns * 90) + eulerAngles.z;
-    isTurn90deg = numTurns % 2 ? true : false;
+    turnErrorSum = 0;
+    turnPrevError = 0;
 }
 
 void Robot::TurningUpdate(void){
     float error = (targetHeading - eulerAngles.z) * PI / 180;
-    turnErrorSum += error;
     float turnEffort = Kp_turn * error + Kd_turn * (error - turnPrevError) + Ki_turn * turnErrorSum;
-    uint8_t speed = isTurn90deg ? 10 : 0;
-    chassis.SetTwist(speed, turnEffort);
+    chassis.SetTwist(0, turnEffort);
     turnPrevError = error;
+    turnErrorSum += error;
 }
 
 bool Robot::CheckTurnComplete(void)
 {
     bool retVal = false;
 
-    if (fabs(targetHeading - eulerAngles.z) < 0.01){
+    if (fabs(targetHeading - eulerAngles.z) < TURN_THRESHOLD){
         retVal = true;
     }
 
@@ -73,9 +73,8 @@ bool Robot::CheckTurnComplete(void)
 
 void Robot::HandleTurnComplete(void)
 {
-    if (robotState == ROBOT_TURNING){
-        Serial.println(" -> LINING");
-        robotState = ROBOT_LINING;
+    if (robotState == ROBOT_TURNING && robotCtrlMode == CTRL_AUTO){
+        EnterLineFollowing();
     }
 }
 
@@ -141,23 +140,36 @@ void Robot::EnterLineFollowing()
     lineSum = 0;
 }
 
+void Robot::EnterLineFollowing(int speed){
+    Serial.println(" -> LINING"); 
+    robotState = ROBOT_LINING;
+    baseSpeed = speed;
+    lineSum = 0;
+}
+
 void Robot::LineFollowingUpdate(void)
 {
-    if(robotState == ROBOT_LINING) 
-    {
-        // TODO: calculate the error in CalcError(), calc the effort, and update the motion
-        float lineError = lineSensor.CalcError();
-        float Kp = Kp_line;
-        float Kd = Kd_line;
-        if (baseSpeed < 41){
-            Kp = Kp_line_slow;
-            Kd = Kd_line_slow;
-        }
-        float turnEffort = Kp * lineError + Kd * (lineError - prevLineError); /*+ Ki_line * lineSum*/
-        prevLineError = lineError;
-        //lineSum += lineError;
-        chassis.SetTwist(baseSpeed, turnEffort);
+    // TODO: calculate the error in CalcError(), calc the effort, and update the motion
+    float lineError = lineSensor.CalcError();
+
+    float Kp = Kp_line_fast;
+    float Kd = Kd_line_fast;
+    if (baseSpeed < 41){
+        Kp = Kp_line_medium;
+        Kd = Kd_line_medium;
     }
+    if (baseSpeed < 35){
+        Kp = Kp_line_slow;
+        Kd = Kd_line_slow;
+    }
+    float turnEffort = Kp * lineError + Kd * (lineError - prevLineError); /*+ Ki_line * lineSum*/
+    prevLineError = lineError;
+    //lineSum += lineError;
+    #ifdef __LINE_FOLLOW_DEBUG__
+    plotVariable("baseSpeed", baseSpeed);
+    plotVariable("Line Error", lineError);
+    #endif
+    chassis.SetTwist(baseSpeed, turnEffort);
 }
 
 /*
@@ -173,10 +185,13 @@ void Robot::UpdateCalibration(void){
  */
 void Robot::HandleIntersection(void)
 {
-    if(iGrid == 0 && jGrid == 0 && iGrid == iTarget && jGrid == jTarget){
-        Serial.println("-> IDLE");
-        robotState == ROBOT_IDLE;
+    if (robotState == ROBOT_LINING){
+        Serial.println("Found Intersection.");
+        enterMoving(8.5);
     }
+}
+
+void Robot::CalculateIntersection(){
 
     switch (direction){
         case 0:
@@ -193,36 +208,108 @@ void Robot::HandleIntersection(void)
             break;
     }
     uint8_t targetDirection;
-    if (iGrid == iTarget){
-        if (jGrid == jTarget){
+    if(iGrid == 0 && jGrid == 0 && iTarget == 0 && jTarget == 0){
+        Serial.println("Returned Home");
+        EnterIdleState();
+    }
+    else {
+        if (jGrid == jTarget && iGrid == iTarget){
             iTarget = 0;
             jTarget = 0;
+            switch (direction){
+                case 0:
+                    targetDirection = 2;
+                    break;
+                case 1:
+                    targetDirection = 3;
+                    break;
+                case 2:
+                    targetDirection = 0;
+                    break;
+                case 3:
+                    targetDirection = 1;
+                    break;
+            }
         }
-    }
-    if (iGrid == iTarget) {
-        //if iTarget - iGrid == -1, then 
-        if (iTarget - iGrid < 0){
-            targetDirection = 1; //go West
+        else if (jGrid != jTarget){
+            if (jTarget - jGrid < 0){
+                targetDirection = 2; //go South
+            }
+            else {
+                targetDirection = 0; //go North
+            }
+        
         }
-        else {
-            targetDirection = 3; //go East
+        else if (iGrid != iTarget) {
+            //if iTarget - iGrid == -1, then 
+            if (iTarget - iGrid < 0){
+                targetDirection = 1; //go West
+            }
+            else {
+                targetDirection = 3; //go East
+            }
         }
-    }
-    else if (jGrid == jTarget){
-        if (jTarget - jGrid < 0){
-            targetDirection = 2; //go South
-        }
-        else {
-            targetDirection = 0; //go North
-        }
-    }
 
-    if (targetDirection != direction){
-        uint8_t numTurns = direction - targetDirection;
-        numTurns = numTurns < 0 ? numTurns + 4 : numTurns;
-        EnterTurn(numTurns);
+        if (targetDirection != direction){
+            int numTurns = targetDirection - direction;
+            numTurns = (fabs(numTurns) > 2) ? -1 * numTurns % 2 : numTurns;
+            
+            #ifdef __INTERSECTION_HANDLING_DEBUG__
+            Serial.print("numTurns requested at intersection: ");
+            Serial.println(numTurns);
+            plotVariable("iGrid", iGrid);
+            plotVariable("jGrid", jGrid);
+            plotVariable("target iGrid", iTarget);
+            plotVariable("target jGrid", jTarget);
+            plotVariable("direction", direction);
+            plotVariable("targetDirection", targetDirection);
+            #endif
+            EnterTurn(numTurns);
+        }
+        else{
+            EnterLineFollowing();
+        }
     }
-    
+}
+
+
+bool Robot::checkMoving(){
+    bool retVal = false;
+   // float error = chassis.calcDistanceError();
+    if (chassis.checkDistance()){
+        retVal = true;
+    }
+    #ifdef __INTERSECTION_HANDLING_DEBUG__
+        plotVariable("iGrid", iGrid);
+        plotVariable("jGrid", jGrid);
+        plotVariable("target iGrid", iTarget);
+        plotVariable("target jGrid", jTarget);
+        plotVariable("direction", direction);
+    #endif
+    return retVal;
+}
+
+void Robot::handleMovingComplete(){
+    if (robotState == ROBOT_MOVE_DISTANCE) {
+        EnterIdleState();
+        CalculateIntersection();
+    }
+}
+
+void Robot::enterMoving(float distanceInCm){
+    Serial.println("-> MOVING");
+    robotState = ROBOT_MOVE_DISTANCE;
+    moveDistance = distanceInCm;
+    chassis.saveStartingEncoder();
+    chassis.setTargetEncoderForDistance(distanceInCm);
+    chassis.SetTwist(baseSpeed,0);
+}
+
+void Robot::plotVariable(String name, double variable){
+    Serial.print(">");
+    Serial.print(name);
+    Serial.print(":"); 
+    Serial.println(variable);
 }
 
 void Robot::RobotLoop(void) 
@@ -247,6 +334,7 @@ void Robot::RobotLoop(void)
         if(robotState == ROBOT_LINING)
         {
             LineFollowingUpdate();
+            //Serial.println("i'm in lining update loop");
         }
 
         if(robotState == ROBOT_TURNING){
@@ -266,13 +354,18 @@ void Robot::RobotLoop(void)
      */
     if(lineSensor.CheckIntersection()) HandleIntersection();
 
+    if(checkMoving()) handleMovingComplete();
+
+
     /**
      * Check for an IMU update
      */
+    //digitalWrite(4, HIGH);
     if(imu.checkForNewData())
     {
         HandleOrientationUpdate();
         if(CheckTurnComplete()) HandleTurnComplete();
     }
+    //digitalWrite(4, LOW);
 }
 
