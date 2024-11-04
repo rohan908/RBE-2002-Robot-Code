@@ -20,14 +20,23 @@ void Robot::HandleKeyCode(int16_t keyCode)
     Serial.println(keyCode);
 
     // Regardless of current state, if ENTER is pressed, go to idle state
-    if(keyCode == STOP_MODE) EnterIdleState();
+    if(keyCode == STOP_MODE){
+        iGrid = 0;
+        jGrid = 0;
+        iTarget = iTargetInital;
+        jTarget = jTargetInital;
+        direction = 0;
+        EnterIdleState();
+    }
 
     // The SETUP key is used for tuning motor gains
+    
     else if(keyCode == SETUP_BTN)
     {
         if(robotCtrlMode == CTRL_SETUP) {EnterTeleopMode(); EnterIdleState();}
         else {EnterSetupMode(); EnterIdleState();}
     }
+    
 
     // If PLAY is pressed, it toggles control mode (setup -> teleop)
     else if(keyCode == PLAY_PAUSE) 
@@ -36,7 +45,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
         else if(robotCtrlMode == CTRL_TELEOP) {EnterAutoMode(); EnterIdleState();}
     }
     
-    else if(keyCode == VOLminus){
+    /*else if(keyCode == VOLminus){
         if (robotCtrlMode == CTRL_AUTO){
             EnterCalibrating(); EnterIdleState();
         }
@@ -45,6 +54,7 @@ void Robot::HandleKeyCode(int16_t keyCode)
             //lineSensor.getCalibrationMinMax();
         }
     }
+    */
 
     /**
      * AUTO commands
@@ -55,6 +65,14 @@ void Robot::HandleKeyCode(int16_t keyCode)
         {
             case REWIND:
                 EnterLineFollowing(keyString.toInt());
+                keyString = "";
+                break;
+            case VOLminus:
+                iTarget = keyString.toInt();
+                keyString = "";
+                break;
+            case VOLplus:
+                jTarget = keyString.toInt();
                 keyString = "";
                 break;
             case NUM_1:
@@ -134,6 +152,12 @@ void Robot::HandleKeyCode(int16_t keyCode)
                 break;
             case DOWN_ARROW:
                 if(!keyString.length()) chassis.SetWheelSpeeds(20, 0);
+                break;
+            case LEFT_ARROW:
+                if(!keyString.length()) EnterTurn(1);
+                break;
+            case RIGHT_ARROW:
+                if(!keyString.length()) EnterTurn(-1);
                 break;
             case ENTER_SAVE:
                 keyString = "";

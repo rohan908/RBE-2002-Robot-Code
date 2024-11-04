@@ -125,6 +125,56 @@ void Chassis::SetWheelSpeeds(float leftSpeedCMperSec, float rightSpeedCMperSec)
     rightMotor.SetTargetSpeed(rightSpeedEncperInterval);
 }
 
+void Chassis::saveStartingEncoder(){
+    leftMotor.startingEncoder = leftMotor.encCount;
+    rightMotor.startingEncoder = rightMotor.startingEncoder;
+}
+
+void Chassis::setTargetEncoderForDistance(float distanceInCm){
+    leftMotor.targetEncoder = leftMotor.startingEncoder + distanceInCm * LEFT_TICKS_PER_CM;
+    rightMotor.targetEncoder = rightMotor.startingEncoder + distanceInCm * RIGHT_TICKS_PER_CM;
+}
+
+/**
+ * Returns error for moving distance in cm
+ */
+float Chassis::calcDistanceError(){
+    float leftDistanceError = leftMotor.targetEncoder - leftMotor.encCount;
+    float rightDistanceError = rightMotor.targetEncoder - rightMotor.encCount;
+    float avg = (leftDistanceError + rightDistanceError) / 2;
+    float avgErrorInCm = avg / ((LEFT_TICKS_PER_CM + RIGHT_TICKS_PER_CM) / 2);
+
+    #ifdef __TURNING_DEBUG__
+        Serial.print(">targetEncoder:");
+        Serial.println(leftMotor.targetEncoder);
+        Serial.print(">startingEncoder:");
+        Serial.println(leftMotor.startingEncoder);
+        Serial.print(">Moving error in cm:");
+        Serial.println(avgErrorInCm);
+        Serial.print(">currEncoder:");
+        Serial.println(leftMotor.encCount);
+    #endif
+
+    return avgErrorInCm;
+}
+
+bool Chassis::checkDistance(){
+    bool retVal = false;
+    if (fabs(leftMotor.targetEncoder) < fabs(leftMotor.encCount) && fabs(rightMotor.targetEncoder) < fabs(rightMotor.encCount)){
+        retVal = true;
+    }
+
+    #ifdef __TURNING_DEBUG__
+        Serial.print(">targetEncoder:");
+        Serial.println(leftMotor.targetEncoder);
+        Serial.print(">startingEncoder:");
+        Serial.println(leftMotor.startingEncoder);
+        Serial.print(">currEncoder:");
+        Serial.println(leftMotor.encCount);
+    #endif
+    return retVal;
+}
+
 /**
  * ISR for timing. On Timer4 overflow, we take a 'snapshot' of the encoder counts 
  * and raise a flag to let the program it is time to execute the PID calculations.

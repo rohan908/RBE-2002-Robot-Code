@@ -53,6 +53,11 @@ public:
     void SetWheelSpeeds(float, float);
     void UpdateMotors(void);
 
+    float calcDistanceError();
+    void saveStartingEncoder();
+    void setTargetEncoderForDistance(float distanceInCm);
+    bool checkDistance();
+
 protected:
     /**
      * Initialization and Setup routines
