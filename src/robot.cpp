@@ -73,7 +73,7 @@ bool Robot::CheckTurnComplete(void)
 
 void Robot::HandleTurnComplete(void)
 {
-    if (robotState == ROBOT_TURNING && robotCtrlMode == CTRL_AUTO){
+    if (robotState == ROBOT_TURNING){
         EnterLineFollowing();
     }
 }
@@ -86,28 +86,52 @@ void Robot::HandleTurnComplete(void)
 void Robot::HandleOrientationUpdate(void)
 {
     prevEulerAngles = eulerAngles;
+    LSM6::vector<float> observedAngles;
+    LSM6::vector<float> predictedAngles;
+    LSM6::vector<float> innnovationInDegrees;
+    //observed
+    observedAngles.y = degrees(atan2(-1 * (imu.a.x), (imu.a.z)));
+    observedAngles.x = degrees(atan2(-1 * imu.a.y, imu.a.z));
+
+    //predicted
+    predictedAngles.x = prevEulerAngles.x + (imu.mdpsPerLSB / 1000) * (imu.g.x - imu.compBias.x) / imu.gyroODR; //divide the ODR since its in Hz
+    predictedAngles.y = prevEulerAngles.y + (imu.mdpsPerLSB / 1000) * (imu.g.y - imu.compBias.y) / imu.gyroODR; //divide by 1000 to convert millidegrees ps to degrees ps
+
+    innnovationInDegrees.y = observedAngles.y - predictedAngles.y;
+    innnovationInDegrees.x = observedAngles.x - predictedAngles.x;
     if(robotState == ROBOT_IDLE)
     {
         // TODO: You'll need to add code to LSM6 to update the bias
         imu.updateGyroBias();
+        //imu.updateAccelBias();
     }
-
     else // update orientation
     {
-        eulerAngles.x = prevEulerAngles.x + (imu.mdpsPerLSB / 1000) * (imu.g.x - imu.gyroBias.x) / imu.gyroODR; //divide the ODR since its in Hz
-        eulerAngles.y = prevEulerAngles.y + (imu.mdpsPerLSB / 1000) * (imu.g.y - imu.gyroBias.y) / imu.gyroODR; //divide by 1000 to convert millidegrees ps to degrees ps
+        imu.updateComplementaryBias(innnovationInDegrees);
+        //corrected
+        eulerAngles.x = predictedAngles.x + KAPPA * innnovationInDegrees.x;
+        eulerAngles.y = predictedAngles.y + KAPPA * innnovationInDegrees.y;
         eulerAngles.z = prevEulerAngles.z + (imu.mdpsPerLSB / 1000)* (imu.g.z - imu.gyroBias.z) / imu.gyroODR;
     }
 
 #ifdef __IMU_DEBUG__
     /*
-    Serial.print(">Biased Yaw:");
-    Serial.println(imu.g.z);
-    Serial.print(">Biased Roll:");
-    Serial.println(imu.g.x);
-    Serial.print(">Biased Pitch:");
-    Serial.println(imu.g.y);
+    Serial.print(">Accel Yaw:");
+    Serial.println(imu.a.z * imu.mgPerLSB / 1000);
+    Serial.print(">Accel Roll:");
+    Serial.println(imu.a.x* imu.mgPerLSB / 1000);
+    Serial.print(">Accel Pitch:");
+    Serial.println(imu.a.y* imu.mgPerLSB / 1000);
+    */
 
+    plotVariable("Observed Pitch", observedAngles.y);
+    plotVariable("Predicted Pitch", predictedAngles.y);
+
+    //plotVariable("X Accel Bias", imu.accelBias.x);
+    //plotVariable("Y Accel Bias", imu.accelBias.y);
+    plotVariable("Y Comp Bias", imu.compBias.y);
+
+    /*
     Serial.print(">UnBiased Yaw:");
     Serial.println(imu.g.z - imu.gyroBias.z);
     Serial.print(">UnBiased Roll:");
@@ -118,6 +142,7 @@ void Robot::HandleOrientationUpdate(void)
     Serial.print(">Yaw Bias:");
     Serial.println(imu.gyroBias.z);
     */
+    
 
 
 
@@ -143,7 +168,7 @@ void Robot::EnterLineFollowing()
 void Robot::EnterLineFollowing(int speed){
     Serial.println(" -> LINING"); 
     robotState = ROBOT_LINING;
-    baseSpeed = speed;
+    baseSpeed = speed > 0 ? speed : 25;
     lineSum = 0;
 }
 
@@ -172,12 +197,12 @@ void Robot::LineFollowingUpdate(void)
     chassis.SetTwist(baseSpeed, turnEffort);
 }
 
-/*
+
 void Robot::UpdateCalibration(void){
     if (robotCtrlMode == CTRL_CALIBRATING){
         lineSensor.Calibrate();
     }
-}*/
+}
 
 /**
  * As coded, HandleIntersection will make the robot drive out 3 intersections, turn around,
@@ -185,8 +210,10 @@ void Robot::UpdateCalibration(void){
  */
 void Robot::HandleIntersection(void)
 {
-    if (robotState == ROBOT_LINING){
+    if (robotState == ROBOT_LINING && !onUpRamp){
+        #ifdef __INTERSECTION_HANDLING_DEBUG__
         Serial.println("Found Intersection.");
+        #endif
         enterMoving(8.5);
     }
 }
@@ -291,8 +318,14 @@ bool Robot::checkMoving(){
 
 void Robot::handleMovingComplete(){
     if (robotState == ROBOT_MOVE_DISTANCE) {
-        EnterIdleState();
-        CalculateIntersection();
+        if (dropTrash){
+            EnterTurn(2);
+            dropTrash = false;
+        }
+        else{
+            EnterIdleState();
+            CalculateIntersection();
+        }
     }
 }
 
@@ -303,7 +336,78 @@ void Robot::enterMoving(float distanceInCm){
     chassis.saveStartingEncoder();
     chassis.setTargetEncoderForDistance(distanceInCm);
     chassis.SetTwist(baseSpeed,0);
+    turnErrorSum = 0;
+    turnPrevError = 0;
+    
 }
+
+void Robot::updateMoving(){
+    float error = (targetHeading - eulerAngles.z) * PI / 180;
+    float turnEffort = Kp_turn * error + Kd_turn * (error - turnPrevError) + Ki_turn * turnErrorSum;
+    chassis.SetTwist(baseSpeed, turnEffort);
+    turnPrevError = error;
+    turnErrorSum += error;
+}
+
+bool Robot::checkUpRamp(){
+    bool retVal = false;
+    if(eulerAngles.y < rampUpAngleThreshold){
+        retVal = true;
+    }
+    return retVal;
+}
+
+void Robot::handleOnUpRamp(){
+    if (!onUpRamp){
+        onUpRamp = true;
+        Serial.println("-> On Up Ramp");
+        digitalWrite(13, HIGH);
+        rampUpAngleThreshold = -3;
+        tempSpeedHolder  = baseSpeed;
+        baseSpeed = 10;
+    }
+}
+
+void Robot::handleOffUpRamp(){
+    if (onUpRamp){
+        onUpRamp = false;
+        Serial.println("-> Off Up Ramp");
+        rampUpAngleThreshold = -10;
+        digitalWrite(13, LOW);
+        baseSpeed = tempSpeedHolder;
+        dropTrash = true;
+        enterMoving(10);
+    }
+}
+
+bool Robot::checkDownRamp(){
+    bool retVal = false;
+    if(eulerAngles.y > rampDownAngleThreshold){
+        retVal = true;
+    }
+    return retVal;
+}
+
+void Robot::handleOnDownRamp(){
+    if (!onDownRamp){
+        onDownRamp = true;
+        dropTrash = false;
+        Serial.println("-> On Down Ramp");
+        digitalWrite(13, HIGH);
+        rampDownAngleThreshold = 3;
+    }
+}
+
+void Robot::handleOffDownRamp(){
+    if (onDownRamp){
+        onDownRamp = false;
+        Serial.println("-> Off Down Ramp");
+        rampDownAngleThreshold = 10;
+        EnterIdleState();
+        digitalWrite(13, LOW);
+    }
+}
+
 
 void Robot::plotVariable(String name, double variable){
     Serial.print(">");
@@ -341,6 +445,14 @@ void Robot::RobotLoop(void)
             TurningUpdate();
         }
 
+        if (robotCtrlMode == CTRL_CALIBRATING){
+            UpdateCalibration();
+        }
+
+        if(robotState == ROBOT_MOVE_DISTANCE){
+            updateMoving();
+        }
+
 
         chassis.UpdateMotors();
 
@@ -356,6 +468,18 @@ void Robot::RobotLoop(void)
 
     if(checkMoving()) handleMovingComplete();
 
+    if(checkUpRamp()){
+        handleOnUpRamp();
+    }
+    else{
+        handleOffUpRamp();
+    }
+    if(checkDownRamp()){
+        handleOnDownRamp();
+    }
+    else{
+        handleOffDownRamp();
+    }
 
     /**
      * Check for an IMU update

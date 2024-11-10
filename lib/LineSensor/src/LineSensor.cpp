@@ -8,39 +8,41 @@ void LineSensor::Initialize(void)
     qtr.setEmitterPin(emitterPin);
     qtr.setNonDimmable();
     */
-   
+   for (uint8_t i = 0; i <  numSensors; i++){
+    calibrateMins[i] = 2000;
+    calibrateMaxs[i] = 0;
+   }
 }
 
 void LineSensor::read(){
-      for (uint8_t i = 0; i < NUM_SENSORS; i++)
-      {
-        sensorValues[i] = 0;
-      }
+  for (uint8_t i = 0; i < NUM_SENSORS; i++)
+  {
+    sensorValues[i] = 0;
+  }
 
-      for (uint8_t i = 0; i < NUM_SENSORS; i++)
-      {
-          sensorValues[i] += analogRead(lineSensorPins[i]);
-      }
+  for (uint8_t i = 0; i < NUM_SENSORS; i++)
+  {
+    sensorValues[i] += analogRead(lineSensorPins[i]);
+  }
 
-      //Gotten from QTR Library
-      // get the rounded average of the readings for each sensor
-      for (uint8_t i = 0; i < NUM_SENSORS; i++)
-      {
-        sensorValues[i] = (sensorValues[i] + (numSamplesPerSensor >> 1)) /
-          numSamplesPerSensor;
-      }
+  //Gotten from QTR Library
+  // get the rounded average of the readings for each sensor
+  for (uint8_t i = 0; i < NUM_SENSORS; i++)
+  {
+    sensorValues[i] = (sensorValues[i] + (numSamplesPerSensor >> 1)) /
+      numSamplesPerSensor;
+  }
 }
 
 
 float LineSensor::readLine(void){
   uint32_t avg= 0;
   uint16_t sum = 0;
-  read();
+  readCalibrated();
   uint16_t value;
   for (uint8_t i = 0; i < numSensors; i++)
   {
     value = isLineBlack ? 1000 - sensorValues[i] : sensorValues[i]; //flips the values if its sensing black lines
-    
     //Modified from QTR Polulu Library
     if (value > 200) {onLine = true;
       //Serial.println("On Line!");
@@ -72,8 +74,67 @@ float LineSensor::readLine(void){
 
   // results in a position between 0 to 5000 where 0 is the farthest left sensor and 5000 is the farthest right sensor
   lastPosition = avg / sum;
+  /*if (calibrated){
+    lastPosition = constrain((lastPosition - 1250) * 2, 0, 5000); //line for mapping to wider range (necessary after line sensor change bruh )
+  }*/
+  #ifdef __LINE_FOLLOW_DEBUG__
+    Serial.print(">position:");
+    Serial.println(lastPosition);
+  #endif
   return lastPosition;
 }
+
+void LineSensor::Calibrate(){
+  read();
+  for (uint8_t i = 0; i < numSensors; i++){
+    if (calibrateMaxs[i] < sensorValues[i]){
+      calibrateMaxs[i] = sensorValues[i];
+    }
+    if(calibrateMins[i] > sensorValues[i]){
+      calibrateMins[i] = sensorValues[i];
+    }
+  }
+  calibrated = true;
+  #ifdef __LINE_FOLLOW_DEBUG__
+  Serial.println("Calibrating!");
+  /*for (int i = 0; i < NUM_SENSORS; i++){
+      Serial.print(calibrateMins[i] + "\t" + calibrateMaxs[i]);
+      Serial.println();
+  }
+  */
+  Serial.println();
+  #endif
+}
+
+void LineSensor::readCalibrated()
+{
+  // read the needed values
+  read();
+  if (calibrated){
+
+    for (uint8_t i = 0; i < numSensors; i++)
+    {
+      uint16_t calmin, calmax;
+      calmax = calibrateMaxs[i];
+      calmin = calibrateMins[i];
+
+      uint16_t denominator = calmax - calmin;
+      int16_t value = 0;
+
+      if (denominator != 0)
+      {
+        value = (((int32_t)sensorValues[i]) - calmin) * 1000 / denominator;
+      }
+
+      if (value < 0) { value = 0; }
+      else if (value > 1000) { value = 1000; }
+
+      sensorValues[i] = value;
+    }
+  }
+}
+
+
 
 
 float LineSensor::CalcError(void) 
@@ -93,7 +154,7 @@ float LineSensor::CalcError(void)
 bool LineSensor::CheckIntersection(void)
 {
   bool retVal = false;
-  read();
+  readCalibrated();
   bool isLeftDark;
   bool isRightDark;
   if (isLineBlack){
