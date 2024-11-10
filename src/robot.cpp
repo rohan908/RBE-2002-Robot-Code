@@ -73,7 +73,7 @@ bool Robot::CheckTurnComplete(void)
 
 void Robot::HandleTurnComplete(void)
 {
-    if (robotState == ROBOT_TURNING){
+    if (robotState == ROBOT_TURNING && robotCtrlMode == CTRL_AUTO){
         EnterLineFollowing();
     }
 }
