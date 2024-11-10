@@ -32,6 +32,9 @@ protected:
     };
 
     ROBOT_STATE robotState = ROBOT_IDLE;
+    bool onUpRamp = false;
+    bool onDownRamp = false;
+    bool dropTrash = false;
 
     /* Define the chassis*/
     Chassis chassis;
@@ -70,12 +73,15 @@ protected:
     LSM6 imu;
     LSM6::vector<float> prevEulerAngles;
     LSM6::vector<float> eulerAngles;
+    LSM6::vector<float> observedEulerAngles;
+    const float KAPPA = 0.015;
 
     /* targetHeading is used for commanding the robot to turn */
     float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
     float baseSpeed = 0;
+    float tempSpeedHolder = 0;
 
     int8_t iGrid = 0, jGrid = 0;
     int8_t direction = 0; //NORTH -> 0; WEST -> 1; SOUTH -> 2; EAST -> 3;
@@ -88,10 +94,8 @@ protected:
 
     float moveDistance;
 
-
-
-
-
+    float rampUpAngleThreshold = -10;
+    float rampDownAngleThreshold = 10;
 
     /**
      * For tracking the motion of the Romi. We keep track of the intersection we came
@@ -138,11 +142,19 @@ protected:
     void HandleTurnComplete(void);
     void TurningUpdate(void);
     void CalculateIntersection(void);
-
     
+    bool checkUpRamp(void);
+    void handleOnUpRamp(void);
+    void handleOffUpRamp(void);
+    bool checkDownRamp(void);
+    void handleOnDownRamp(void);
+    void handleOffDownRamp(void);
+
+
     bool checkMoving(void);
     void handleMovingComplete(void);
     void enterMoving(float distance);
+    void updateMoving(void);
     /* IMU routines */
     void HandleOrientationUpdate(void);
 

@@ -108,9 +108,13 @@ class LSM6
     vector<int16_t> a; // accelerometer readings
     vector<int16_t> g; // gyro readings
 
-    const float ZETA_X = 0.95; // for updating bias
-    const float ZETA_Y = 0.95; // for updating bias
-    const float ZETA_Z = 0.98; // for updating bias
+    const float GYRO_ZETA_X = 0.95; // for updating gyro bias
+    const float GYRO_ZETA_Y = 0.95; // for updating gyro bias
+    const float GYRO_ZETA_Z = 0.98; // for updating gyro bias
+
+    const float ACCEL_ZETA_X = 0.95; // for updating gyro bias
+    const float ACCEL_ZETA_Y = 0.95; // for updating gyro bias
+    const float EPSILON = .0001;
 
 public:
     LSM6(void);
@@ -143,11 +147,25 @@ public:
 
     vector<float> updateGyroBias(void) 
     {
-      gyroBias.x = ZETA_X * gyroBias.x + (1-ZETA_X) * g.x;
-      gyroBias.y = ZETA_Y * gyroBias.y + (1-ZETA_Y) * g.y;
-      gyroBias.z = ZETA_Z * gyroBias.z + (1-ZETA_Z) * g.z;
+      gyroBias.x = GYRO_ZETA_X * gyroBias.x + (1-GYRO_ZETA_X) * g.x;
+      //gyroBias.y = GYRO_ZETA_Y * gyroBias.y + (1-GYRO_ZETA_Y) * g.y;
+      gyroBias.z = GYRO_ZETA_Z * gyroBias.z + (1-GYRO_ZETA_Z) * g.z;
 
       return gyroBias;
+    }
+
+    vector<float> updateAccelBias(void){
+      accelBias.x = ACCEL_ZETA_X * accelBias.x + (1-ACCEL_ZETA_X) * a.x;
+      accelBias.y = ACCEL_ZETA_Y * accelBias.y + (1-ACCEL_ZETA_Y) * a.y;
+
+      return accelBias;
+    }
+
+    vector<float> updateComplementaryBias(vector<float> innovationInDegrees){
+      compBias.y = compBias.y - EPSILON * gyroODR / (mdpsPerLSB / 1000) * (innovationInDegrees.y);
+      compBias.x = compBias.x - EPSILON * gyroODR / (mdpsPerLSB / 1000) * (innovationInDegrees.x);
+
+      return compBias;
     }
 
   protected:
@@ -171,6 +189,8 @@ public:
     // float estimatedPitchAngle = 0;
     // vector<float> eulerAngles;
     vector<float> gyroBias;
+    vector<float> accelBias;
+    vector<float> compBias;
 
     /* We make Robot a friend to avoid all the setters and getters. */
     friend class Robot;

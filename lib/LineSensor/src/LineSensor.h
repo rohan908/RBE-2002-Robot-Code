@@ -21,6 +21,7 @@ protected:
 
     bool onLine = false;
     bool isLineBlack = false;
+    bool calibrated = false;
     int32_t lastPosition = 0;
     bool prevOnIntersection = false;
     unsigned char numSensors = NUM_SENSORS;
@@ -29,7 +30,10 @@ protected:
     //QTRSensors qtr;
     const byte lineSensorPins[NUM_SENSORS] = {LINE_SENSOR_1, LINE_SENSOR_3, LINE_SENSOR_5, LINE_SENSOR_7, LINE_SENSOR_9, LINE_SENSOR_11};
 
-    uint16_t sensorValues[NUM_SENSORS];
+    int sensorValues[NUM_SENSORS];
+
+    int calibrateMins[NUM_SENSORS];
+    int calibrateMaxs[NUM_SENSORS];
 
 public:
 
@@ -39,7 +43,7 @@ public:
     bool CheckIntersection(void);
     void Calibrate(void);
     void read(void);
-    void readCalibration(void);
+    void readCalibrated(void);
     float readLine(void);
     void getCalibrationMinMax(void);
 };
