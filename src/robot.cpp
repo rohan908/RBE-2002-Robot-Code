@@ -210,7 +210,7 @@ void Robot::UpdateCalibration(void){
  */
 void Robot::HandleIntersection(void)
 {
-    if (robotState == ROBOT_LINING && !onUpRamp){
+    if (robotState == ROBOT_LINING && !onUpRamp && !onDownRamp){
         #ifdef __INTERSECTION_HANDLING_DEBUG__
         Serial.println("Found Intersection.");
         #endif
