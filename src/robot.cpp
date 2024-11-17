@@ -168,7 +168,7 @@ void Robot::EnterLineFollowing()
 void Robot::EnterLineFollowing(int speed){
     Serial.println(" -> LINING"); 
     robotState = ROBOT_LINING;
-    baseSpeed = speed > 0 ? speed : 25;
+    baseSpeed = speed > 0 ? speed : baseSpeed;
     lineSum = 0;
 }
 
@@ -408,6 +408,61 @@ void Robot::handleOffDownRamp(){
     }
 }
 
+void Robot::enterSearching(){
+    chassis.SetTwist(0, 0.5);
+    Serial.println("-> SEARCHING");
+}
+
+bool Robot::checkSearch(){
+    bool retVal = false;
+    if (camera.getTagCount()){
+        retVal = true;
+    }
+    return retVal;
+}
+
+void Robot::handleSearchComplete(){
+    if (robotState == ROBOT_SEARCHING){
+        chassis.SetTwist(0,0);
+        enterApproaching();
+    }
+}
+
+void Robot::enterApproaching(){
+    camera.readTag(camera.tag);
+    robotState = ROBOT_APPROACHING;
+    Serial.print("-> APPROACHING");
+}
+
+bool Robot::checkApproached(){
+    bool retVal = false;
+    if (camera.seesTag && (camera.tag.z < 50)){
+        retVal = true;
+    }
+    return retVal;
+}
+
+void Robot::updateApproach(){
+    if (tagUpdateTimer % 3 == 0){
+        camera.readTag(camera.tag);
+    }
+    tagUpdateTimer++;
+    float error = camera.calcCenterError(camera.tag);
+    float turnError = Kp_approach * error + Kd_approach * (error - PrevApproachError) + Ki_approach * approachErrorSum;
+    PrevApproachError  = error;
+    approachErrorSum += error;
+    #ifdef __APPROACH_DEBUG__
+        plotVariable("tagError", error);
+    #endif
+    chassis.SetTwist(-1 * baseSpeed, -1 * turnError); //multiply -1 since the romi is backwards
+}
+
+void Robot::handleApproachedComplete(){
+    if(robotState == ROBOT_APPROACHING){
+        EnterIdleState();
+    }
+}
+
 
 void Robot::plotVariable(String name, double variable){
     Serial.print(">");
@@ -426,6 +481,8 @@ void Robot::RobotLoop(void)
     /**
      * Handle any IR remote keypresses.
      */
+    Serial.println(camera.PrintAprilTags());
+
     int16_t keyCode = decoder.getKeyCode();
     if(keyCode != -1) HandleKeyCode(keyCode);
 
@@ -451,6 +508,10 @@ void Robot::RobotLoop(void)
 
         if(robotState == ROBOT_MOVE_DISTANCE){
             updateMoving();
+        }
+
+        if(robotState == ROBOT_APPROACHING){
+            updateApproach();
         }
 
 
@@ -480,6 +541,8 @@ void Robot::RobotLoop(void)
     else{
         handleOffDownRamp();
     }
+    if(checkApproached()) handleApproachedComplete();
+    if(checkSearch()) handleSearchComplete();
 
     /**
      * Check for an IMU update
