@@ -63,13 +63,13 @@ def to_object_block_format(tag):
         tag.id,
         tag.w,
         tag.h,
-        convToInt(tag.rotation * 100),
-        convToInt(tag.x_translation * 10),
-        convToInt(tag.y_translation * 10),
-        convToInt(tag.z_translation * 10),
-        convToInt(tag.x_rotation * 10),
-        convToInt(tag.y_rotation * 10),
-        convToInt(tag.z_rotation * 10),
+        convToInt(tag.rotation * 1000),
+        convToInt(tag.x_translation * 1000),
+        convToInt(tag.y_translation * 1000),
+        convToInt(tag.z_translation * 1000),
+        convToInt(tag.x_rotation * 1000),
+        convToInt(tag.y_rotation * 1000),
+        convToInt(tag.z_rotation * 1000),
         0x00 # we need an extra byte in order to calculate the checksum
     )
 
@@ -118,13 +118,13 @@ while(True):
                 tag.id,
                 tag.w,
                 tag.h,
-                convToInt(tag.rotation * 100),
-                convToInt(tag.x_translation * 100),
-                convToInt(tag.y_translation * 100),
-                convToInt(tag.z_translation * 10),
-                convToInt(tag.x_rotation * 10),
-                convToInt(tag.y_rotation * 10),
-                convToInt(tag.z_rotation * 10),
+                convToInt(tag.rotation * 1000),
+                convToInt(tag.x_translation * 1000),
+                convToInt(tag.y_translation * 1000),
+                convToInt(tag.z_translation * 1000),
+                convToInt(tag.x_rotation * 1000),
+                convToInt(tag.y_rotation * 1000),
+                convToInt(tag.z_rotation * 1000),
             )
             print("id: %d, w %d, h %d, R %d, X %d, Y %d, Z %d, Rx %d, Ry %d, Rz %d" % print_args)
 

@@ -324,7 +324,7 @@ void Robot::handleMovingComplete(){
         }
         else{
             EnterIdleState();
-            CalculateIntersection();
+            //CalculateIntersection();
         }
     }
 }
@@ -333,9 +333,13 @@ void Robot::enterMoving(float distanceInCm){
     Serial.println("-> MOVING");
     robotState = ROBOT_MOVE_DISTANCE;
     moveDistance = distanceInCm;
+    if (moveDistance < 0){
+        baseSpeed = -1 * baseSpeed;
+    }
     chassis.saveStartingEncoder();
     chassis.setTargetEncoderForDistance(distanceInCm);
     chassis.SetTwist(baseSpeed,0);
+    targetHeading = eulerAngles.z;
     turnErrorSum = 0;
     turnPrevError = 0;
     
@@ -411,6 +415,7 @@ void Robot::handleOffDownRamp(){
 void Robot::enterSearching(){
     chassis.SetTwist(0, 0.5);
     Serial.println("-> SEARCHING");
+    robotState = ROBOT_SEARCHING;
 }
 
 bool Robot::checkSearch(){
@@ -431,37 +436,49 @@ void Robot::handleSearchComplete(){
 void Robot::enterApproaching(){
     camera.readTag(camera.tag);
     robotState = ROBOT_APPROACHING;
-    Serial.print("-> APPROACHING");
+    Serial.println("-> APPROACHING");
 }
 
 bool Robot::checkApproached(){
-    bool retVal = false;
-    if (camera.seesTag && (camera.tag.z < 50)){
-        retVal = true;
+    if (camera.seesTag && (camera.currTag.z < 3)){
+        startTime = 1;
+        return true;
     }
-    return retVal;
+    if (startTime){
+        startTime = millis();
+    }
+    return false;
 }
 
 void Robot::updateApproach(){
     if (tagUpdateTimer % 3 == 0){
-        camera.readTag(camera.tag);
+        camera.handleTags();
     }
     tagUpdateTimer++;
-    float error = camera.calcCenterError(camera.tag);
+    float error = camera.currTag.cx;
     float turnError = Kp_approach * error + Kd_approach * (error - PrevApproachError) + Ki_approach * approachErrorSum;
     PrevApproachError  = error;
     approachErrorSum += error;
     #ifdef __APPROACH_DEBUG__
         plotVariable("tagError", error);
     #endif
-    chassis.SetTwist(-1 * baseSpeed, -1 * turnError); //multiply -1 since the romi is backwards
+    chassis.SetTwist(-1 * 5, -1 * turnError); //multiply -1 since the romi is backwards
 }
 
 void Robot::handleApproachedComplete(){
     if(robotState == ROBOT_APPROACHING){
-        EnterIdleState();
+        enterMoving(-7);
     }
 }
+
+void Robot::handleLostTag(){
+    if(robotState == ROBOT_APPROACHING && !camera.seesTag){
+        if ((millis() - startTime) > 1000){
+            enterSearching();
+        }
+    }
+}
+
 
 
 void Robot::plotVariable(String name, double variable){
@@ -481,7 +498,7 @@ void Robot::RobotLoop(void)
     /**
      * Handle any IR remote keypresses.
      */
-    Serial.println(camera.PrintAprilTags());
+    camera.PrintAprilTags();
 
     int16_t keyCode = decoder.getKeyCode();
     if(keyCode != -1) HandleKeyCode(keyCode);
@@ -541,7 +558,13 @@ void Robot::RobotLoop(void)
     else{
         handleOffDownRamp();
     }
-    if(checkApproached()) handleApproachedComplete();
+    if(checkApproached()) {
+        handleApproachedComplete();
+    }
+    else{
+        handleLostTag();
+    }
+
     if(checkSearch()) handleSearchComplete();
 
     /**

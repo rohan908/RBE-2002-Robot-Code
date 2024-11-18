@@ -5,7 +5,7 @@ uint8_t OpenMV::getTagCount(void)
     uint8_t tagCount = 0;
     seesTag = false;
 
-    //delayMicroseconds(100); // Give camera time to get ready
+    delayMicroseconds(100); // Give camera time to get ready
 
     /* Ask for one byte, which should hold the tag count
      * We should probably check to make sure we don't accidenally read a tag.
@@ -15,8 +15,8 @@ uint8_t OpenMV::getTagCount(void)
         tagCount = Wire.read();
         seesTag = true;
     }
-    Serial.print(">tagCount:");
-    Serial.println(tagCount);
+    //Serial.print(">tagCount:");
+    //Serial.println(tagCount);
 
     return tagCount;
 }
@@ -36,19 +36,19 @@ bool OpenMV::readTag(AprilTagDatum& tag)
      * value.
      */
 
-    //delayMicroseconds(250); // Give camera a little time to get ready
+    delayMicroseconds(250); // Give camera a little time to get ready
 
     uint8_t buffer[sizeof(AprilTagDatum)];
     //use some explicit casts to suppress warnings
     if (Wire.requestFrom(CAMERA_I2C_ADDRESS, sizeof(AprilTagDatum), true) == sizeof(AprilTagDatum))
     {
-        Serial.print("gotData");
+        //Serial.print("gotData");
       for(uint8_t i = 0; i < sizeof(AprilTagDatum); i++) buffer[i] = Wire.read();
       uint16_t checkSum = 0;
       for(uint8_t i = 4; i < sizeof(AprilTagDatum); i += 2) checkSum += ((buffer[i+1] & 0xFF) << 8) | ((buffer[i+0] & 0xFF) << 0);
       checkSum = checkSum & 0xFFFF;
       if (checkSum == (((buffer[3] & 0xFFFF) << 8) | ((buffer[2] & 0xFF) << 0))){
-        Serial.print("checkSum success");
+        //Serial.print("checkSum success");
         memcpy(&tag, buffer, sizeof(AprilTagDatum));
         dataHandle(tag);
         retVal = true;
@@ -59,13 +59,17 @@ bool OpenMV::readTag(AprilTagDatum& tag)
 }
 
 void OpenMV::dataHandle(AprilTagDatum &tag){
-    tag.rot = (float)(tag.rot) / 100;
-    tag.x = -1 * (float)(tag.x) / 10;
-    tag.y = -1 * (float)(tag.y) / 10;
-    tag.z = -1 * (float)(tag.z) / 10;
-    tag.rx = (float)(tag.rx) / 10;
-    tag.ry = (float)(tag.ry) / 10;
-    tag.rz = (float)(tag.rz) / 10;
+    currTag.id = tag.id;
+    currTag.rot = ((float)(tag.rot)) / 1000;
+    currTag.x = -1 * ((float)(tag.x)) / 1000;
+    currTag.y = -1 * ((float)(tag.y)) / 1000;
+    currTag.z = -1 * ((float)(tag.z)) / 1000;
+    currTag.rx = ((float)(tag.rx)) / 1000;
+    currTag.ry = ((float)(tag.ry)) / 1000;
+    currTag.rz = ((float)(tag.rz)) / 1000;
+    currTag.w = ((float)(tag.w))/1000;
+    currTag.h = ((float)(tag.h))/1000;
+    currTag.cx = currTag.x - (currTag.w / 2);
 }
 
 bool OpenMV::checkUART(AprilTagDatum& tag)  
@@ -130,29 +134,40 @@ uint8_t OpenMV::PrintAprilTags()
       if(readTag(tag)) // camera.readTag(tag))
       {
         Serial.print(F("id: "));
-        Serial.print(tag.id);
+        Serial.print(currTag.id);
         Serial.print(F(",[w: "));
-        Serial.print(tag.w);
+        Serial.print(currTag.w);
         Serial.print(F(", h: "));
-        Serial.print(tag.h);
+        Serial.print(currTag.h);
         Serial.print(F(", rot: "));
-        Serial.print(tag.rot);
+        Serial.print(currTag.rot);
         Serial.print(F(", x: "));
-        Serial.print(tag.x);
+        Serial.print(currTag.x);
         Serial.print(F(", y: "));
-        Serial.print(tag.y);
+        Serial.print(currTag.y);
         Serial.print(F(", z: "));
-        Serial.print(tag.z);
+        Serial.print(currTag.z);
         Serial.print(F(", rx: "));
-        Serial.print(tag.rx);
+        Serial.print(currTag.rx);
         Serial.print(F(", ry: "));
-        Serial.print(tag.ry);
+        Serial.print(currTag.ry);
         Serial.print(F(", rz: "));
-        Serial.print(tag.rz);
+        Serial.print(currTag.rz);
         Serial.println(F("]"));
-        Serial.println(tag.checksum);
+        //Serial.println(tag.checksum);
       }
     }
 
+    return tagCount;
+}
+
+uint8_t OpenMV::handleTags(){
+    uint8_t tagCount = getTagCount();
+    if(tagCount) {
+        if (readTag(tag)) seesTag = true;
+    }
+    else{
+        seesTag = false;
+    }
     return tagCount;
 }

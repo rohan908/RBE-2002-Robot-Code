@@ -17,16 +17,21 @@ protected:
     uint8_t mvIndex = 0; //for counting bytes
 
     void dataHandle(AprilTagDatum& tag);
+    typedef struct AprilTagInfo{
+        float id, w, h, rot, cx, cy, x, y, z, rx, ry, rz;
+    };
 
 public:
     uint8_t getTagCount(void);
     bool readTag(AprilTagDatum& tag);
     uint8_t PrintAprilTags();
     float calcCenterError(AprilTagDatum& tag);
+    uint8_t handleTags();
 
     bool checkUART(AprilTagDatum& tag);
     bool handleUART(uint8_t b);
     AprilTagDatum tag;
+    AprilTagInfo currTag;
     bool seesTag;
 };
 

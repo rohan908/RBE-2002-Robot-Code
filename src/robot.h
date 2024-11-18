@@ -64,11 +64,14 @@ protected:
     const float TURN_THRESHOLD = 1;
 
     /* Approach PID*/
-    float Kp_approach = 0.1;
-    float Kd_approach = 0;
-    float Ki_approach = 0;
+    float Kp_approach = 0.3;
+    float Kd_approach = .4;
+    float Ki_approach = .001;
     float PrevApproachError = 0;
     float approachErrorSum = 0;
+
+    //Stuff
+    float startTime = 0;
 
 
     /* To add later: rangefinder, camera, etc.*/
@@ -96,7 +99,7 @@ protected:
     float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
-    float baseSpeed = 25;
+    float baseSpeed = 5;
     float tempSpeedHolder = 0;
 
     int8_t iGrid = 0, jGrid = 0;
@@ -185,6 +188,7 @@ protected:
     void handleApproachedComplete(void);
     void updateApproach(void);
 
+    void handleLostTag(void);
     /* IMU routines */
     void HandleOrientationUpdate(void);
 
