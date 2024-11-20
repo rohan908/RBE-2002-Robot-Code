@@ -435,6 +435,9 @@ void Robot::handleSearchComplete(){
 
 void Robot::enterApproaching(){
     camera.readTag(camera.tag);
+    char str[3];
+    sprintf(str, "%d", camera.currTag.id);
+    esp.sendMessage("CurrentTag", str);
     robotState = ROBOT_APPROACHING;
     Serial.println("-> APPROACHING");
 }
@@ -452,12 +455,15 @@ bool Robot::checkApproached(){
 
 void Robot::updateApproach(){
     if (tagUpdateTimer % 3 == 0){
+        char str[3];
+        sprintf(str, "%d", camera.currTag.id);
+        esp.sendMessage("CurrentTag", str);
         camera.handleTags();
     }
     tagUpdateTimer++;
     float error = camera.currTag.cx;
     float turnError = Kp_approach * error + Kd_approach * (error - PrevApproachError) + Ki_approach * approachErrorSum;
-    PrevApproachError  = error;
+    PrevApproachError = error;
     approachErrorSum += error;
     #ifdef __APPROACH_DEBUG__
         plotVariable("tagError", error);
