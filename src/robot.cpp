@@ -168,7 +168,7 @@ void Robot::EnterLineFollowing()
 void Robot::EnterLineFollowing(int speed){
     Serial.println(" -> LINING"); 
     robotState = ROBOT_LINING;
-    baseSpeed = speed > 0 ? speed : 25;
+    baseSpeed = speed > 0 ? speed : baseSpeed;
     lineSum = 0;
 }
 
@@ -324,7 +324,7 @@ void Robot::handleMovingComplete(){
         }
         else{
             EnterIdleState();
-            CalculateIntersection();
+            //CalculateIntersection();
         }
     }
 }
@@ -333,9 +333,13 @@ void Robot::enterMoving(float distanceInCm){
     Serial.println("-> MOVING");
     robotState = ROBOT_MOVE_DISTANCE;
     moveDistance = distanceInCm;
+    if (moveDistance < 0){
+        baseSpeed = -1 * baseSpeed;
+    }
     chassis.saveStartingEncoder();
     chassis.setTargetEncoderForDistance(distanceInCm);
     chassis.SetTwist(baseSpeed,0);
+    targetHeading = eulerAngles.z;
     turnErrorSum = 0;
     turnPrevError = 0;
     
@@ -408,6 +412,80 @@ void Robot::handleOffDownRamp(){
     }
 }
 
+void Robot::enterSearching(){
+    chassis.SetTwist(0, 0.5);
+    Serial.println("-> SEARCHING");
+    robotState = ROBOT_SEARCHING;
+}
+
+bool Robot::checkSearch(){
+    bool retVal = false;
+    if (camera.getTagCount()){
+        retVal = true;
+    }
+    return retVal;
+}
+
+void Robot::handleSearchComplete(){
+    if (robotState == ROBOT_SEARCHING){
+        chassis.SetTwist(0,0);
+        enterApproaching();
+    }
+}
+
+void Robot::enterApproaching(){
+    camera.readTag(camera.tag);
+    char str[3];
+    sprintf(str, "%d", camera.currTag.id);
+    esp.sendMessage("CurrentTag", str);
+    robotState = ROBOT_APPROACHING;
+    Serial.println("-> APPROACHING");
+}
+
+bool Robot::checkApproached(){
+    if (camera.seesTag && (camera.currTag.z < 3)){
+        startTime = 1;
+        return true;
+    }
+    if (startTime){
+        startTime = millis();
+    }
+    return false;
+}
+
+void Robot::updateApproach(){
+    if (tagUpdateTimer % 3 == 0){
+        char str[3];
+        sprintf(str, "%d", camera.currTag.id);
+        esp.sendMessage("CurrentTag", str);
+        camera.handleTags();
+    }
+    tagUpdateTimer++;
+    float error = camera.currTag.cx;
+    float turnError = Kp_approach * error + Kd_approach * (error - PrevApproachError) + Ki_approach * approachErrorSum;
+    PrevApproachError = error;
+    approachErrorSum += error;
+    #ifdef __APPROACH_DEBUG__
+        plotVariable("tagError", error);
+    #endif
+    chassis.SetTwist(-1 * 5, -1 * turnError); //multiply -1 since the romi is backwards
+}
+
+void Robot::handleApproachedComplete(){
+    if(robotState == ROBOT_APPROACHING){
+        enterMoving(-7);
+    }
+}
+
+void Robot::handleLostTag(){
+    if(robotState == ROBOT_APPROACHING && !camera.seesTag){
+        if ((millis() - startTime) > 1000){
+            enterSearching();
+        }
+    }
+}
+
+
 
 void Robot::plotVariable(String name, double variable){
     Serial.print(">");
@@ -426,6 +504,8 @@ void Robot::RobotLoop(void)
     /**
      * Handle any IR remote keypresses.
      */
+    camera.PrintAprilTags();
+
     int16_t keyCode = decoder.getKeyCode();
     if(keyCode != -1) HandleKeyCode(keyCode);
 
@@ -451,6 +531,10 @@ void Robot::RobotLoop(void)
 
         if(robotState == ROBOT_MOVE_DISTANCE){
             updateMoving();
+        }
+
+        if(robotState == ROBOT_APPROACHING){
+            updateApproach();
         }
 
 
@@ -480,6 +564,14 @@ void Robot::RobotLoop(void)
     else{
         handleOffDownRamp();
     }
+    if(checkApproached()) {
+        handleApproachedComplete();
+    }
+    else{
+        handleLostTag();
+    }
+
+    if(checkSearch()) handleSearchComplete();
 
     /**
      * Check for an IMU update

@@ -75,6 +75,10 @@ void Robot::HandleKeyCode(int16_t keyCode)
                 jTarget = keyString.toInt();
                 keyString = "";
                 break;
+            case ENTER_SAVE:
+                enterSearching();
+                keyString = "";
+                break;
             case NUM_1:
             case NUM_2:
             case NUM_3:

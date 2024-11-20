@@ -2,6 +2,8 @@
 #include "chassis.h"
 #include <LineSensor.h>
 #include <LSM6.h>
+#include <esp32.h>
+#include <openmv.h>
 
 class Robot
 {
@@ -29,6 +31,8 @@ protected:
         ROBOT_LINING,
         ROBOT_TURNING,
         ROBOT_MOVE_DISTANCE,
+        ROBOT_SEARCHING,
+        ROBOT_APPROACHING
     };
 
     ROBOT_STATE robotState = ROBOT_IDLE;
@@ -59,9 +63,24 @@ protected:
     float turnPrevError = 0;
     const float TURN_THRESHOLD = 1;
 
+    /* Approach PID*/
+    float Kp_approach = 0.3;
+    float Kd_approach = .4;
+    float Ki_approach = .001;
+    float PrevApproachError = 0;
+    float approachErrorSum = 0;
+
+    //Stuff
+    float startTime = 0;
 
 
     /* To add later: rangefinder, camera, etc.*/
+
+    /* ESP32 */
+    ESP32 esp;
+
+    /* Camera */
+    OpenMV camera;
 
     // For managing key presses
     String keyString;
@@ -80,7 +99,7 @@ protected:
     float targetHeading = 0;
 
     /* baseSpeed is used to drive at a given speed while, say, line following.*/
-    float baseSpeed = 0;
+    float baseSpeed = 5;
     float tempSpeedHolder = 0;
 
     int8_t iGrid = 0, jGrid = 0;
@@ -96,6 +115,11 @@ protected:
 
     float rampUpAngleThreshold = -10;
     float rampDownAngleThreshold = 10;
+
+    float tagZTransThreshold = 50;
+    uint8_t tagUpdateTimer = 0;
+
+
 
     /**
      * For tracking the motion of the Romi. We keep track of the intersection we came
@@ -150,11 +174,21 @@ protected:
     void handleOnDownRamp(void);
     void handleOffDownRamp(void);
 
-
     bool checkMoving(void);
     void handleMovingComplete(void);
     void enterMoving(float distance);
     void updateMoving(void);
+
+    void enterSearching(void);
+    bool checkSearch(void);
+    void handleSearchComplete(void);
+
+    void enterApproaching(void);
+    bool checkApproached(void);
+    void handleApproachedComplete(void);
+    void updateApproach(void);
+
+    void handleLostTag(void);
     /* IMU routines */
     void HandleOrientationUpdate(void);
 
