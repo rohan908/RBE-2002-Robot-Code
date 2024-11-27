@@ -48,7 +48,7 @@ public:
     static void Timer4OverflowISRHandler(void);
 
 public:
-    void Stop(void) {SetMotorEfforts(0, 0);}
+    void Stop(void) {SetTwist(0, 0);}
     void SetTwist(float fwdSpeed, float rotSpeed);
     void SetWheelSpeeds(float, float);
     void UpdateMotors(void);

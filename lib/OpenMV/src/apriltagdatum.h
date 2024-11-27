@@ -9,15 +9,10 @@ struct AprilTagDatum {
     int16_t header,
     checksum, 
     id, 
-    w, 
-    h, 
-    rot, 
+    w,  
     x, 
-    y, 
     z, 
     rx, 
-    ry, 
-    rz, 
     nul; };
 
 #endif

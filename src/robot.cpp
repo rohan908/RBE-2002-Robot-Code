@@ -23,6 +23,8 @@ void Robot::InitializeRobot(void)
 
     // The line sensor elements default to INPUTs, but we'll initialize anyways, for completeness
     lineSensor.Initialize();
+
+    lifterServo.attach();
 }
 
 void Robot::EnterIdleState(void)
@@ -197,12 +199,13 @@ void Robot::LineFollowingUpdate(void)
     chassis.SetTwist(baseSpeed, turnEffort);
 }
 
-
+/*
 void Robot::UpdateCalibration(void){
     if (robotCtrlMode == CTRL_CALIBRATING){
         lineSensor.Calibrate();
     }
 }
+*/
 
 /**
  * As coded, HandleIntersection will make the robot drive out 3 intersections, turn around,
@@ -319,8 +322,14 @@ bool Robot::checkMoving(){
 void Robot::handleMovingComplete(){
     if (robotState == ROBOT_MOVE_DISTANCE) {
         if (dropTrash){
-            EnterTurn(2);
-            dropTrash = false;
+            enterLiftDown();
+            baseSpeed *= -1;
+        }
+        else if (gettingTrashFlag){
+            //Serial.print('a');
+            enterLiftUp();
+            baseSpeed *= -1;
+
         }
         else{
             EnterIdleState();
@@ -415,6 +424,7 @@ void Robot::handleOffDownRamp(){
 void Robot::enterSearching(){
     chassis.SetTwist(0, 0.5);
     Serial.println("-> SEARCHING");
+    gettingTrashFlag = true;
     robotState = ROBOT_SEARCHING;
 }
 
@@ -435,9 +445,7 @@ void Robot::handleSearchComplete(){
 
 void Robot::enterApproaching(){
     camera.readTag(camera.tag);
-    char str[3];
-    sprintf(str, "%d", camera.currTag.id);
-    esp.sendMessage("CurrentTag", str);
+    esp.sendMessage("TagID", String(camera.currTag.id));
     robotState = ROBOT_APPROACHING;
     Serial.println("-> APPROACHING");
 }
@@ -455,20 +463,18 @@ bool Robot::checkApproached(){
 
 void Robot::updateApproach(){
     if (tagUpdateTimer % 3 == 0){
-        char str[3];
-        sprintf(str, "%d", camera.currTag.id);
-        esp.sendMessage("CurrentTag", str);
+        esp.sendMessage("Rohan/TagID", String(camera.currTag.id));
         camera.handleTags();
     }
     tagUpdateTimer++;
-    float error = camera.currTag.cx;
+    float error = -1 * camera.currTag.cx;
     float turnError = Kp_approach * error + Kd_approach * (error - PrevApproachError) + Ki_approach * approachErrorSum;
     PrevApproachError = error;
     approachErrorSum += error;
     #ifdef __APPROACH_DEBUG__
         plotVariable("tagError", error);
     #endif
-    chassis.SetTwist(-1 * 5, -1 * turnError); //multiply -1 since the romi is backwards
+    chassis.SetTwist(-1 * 5, turnError); //multiply -1 since the romi is backwards
 }
 
 void Robot::handleApproachedComplete(){
@@ -481,6 +487,38 @@ void Robot::handleLostTag(){
     if(robotState == ROBOT_APPROACHING && !camera.seesTag){
         if ((millis() - startTime) > 1000){
             enterSearching();
+        }
+    }
+}
+
+void Robot::enterLiftUp(){
+    robotState = ROBOT_LIFTING;
+    liftUp = true;
+    chassis.Stop();
+    raiseArm();
+    Serial.println("-> Lift");
+}
+void Robot::enterLiftDown(){
+    robotState = ROBOT_LIFTING;
+    liftUp = false;
+    chassis.Stop();
+    lowerArm();
+    Serial.println("-> Lift");
+}
+bool Robot::checkLifting(){
+    if (lifterServo.checkAtTarget()){
+        return true;
+    }
+    return false;
+}
+void Robot::handleLiftComplete(){
+    if (robotState == ROBOT_LIFTING){
+        if (liftUp){
+            enterWeighing();
+        }
+        else{
+            EnterTurn(2);
+            dropTrash = false;
         }
     }
 }
@@ -504,10 +542,17 @@ void Robot::RobotLoop(void)
     /**
      * Handle any IR remote keypresses.
      */
+    #ifdef __CAMERA_DEBUG__
     camera.PrintAprilTags();
+    #endif
+    #ifdef __ESP32_DEBUG__
+    esp.heartbeat();
+    #endif
 
     int16_t keyCode = decoder.getKeyCode();
     if(keyCode != -1) HandleKeyCode(keyCode);
+
+
 
     /**
      * Check the Chassis timer, which is used for executing motor control
@@ -525,9 +570,11 @@ void Robot::RobotLoop(void)
             TurningUpdate();
         }
 
+        /*
         if (robotCtrlMode == CTRL_CALIBRATING){
             UpdateCalibration();
         }
+        */
 
         if(robotState == ROBOT_MOVE_DISTANCE){
             updateMoving();
@@ -537,13 +584,19 @@ void Robot::RobotLoop(void)
             updateApproach();
         }
 
-
+        lifterServo.update();
         chassis.UpdateMotors();
 
         // add synchronous, post-motor-update actions here
 
     }
     //if (robotCtrlMode == CTRL_CALIBRATING) UpdateCalibration();
+
+    updateWeighing();
+
+    if(checkLifting()) handleLiftComplete();
+
+    if(checkWeighing()) handleWeighing();
 
     /**
      * Check for any intersections

@@ -60,16 +60,16 @@ bool OpenMV::readTag(AprilTagDatum& tag)
 
 void OpenMV::dataHandle(AprilTagDatum &tag){
     currTag.id = tag.id;
-    currTag.rot = ((float)(tag.rot)) / 1000;
+    //currTag.rot = ((float)(tag.rot)) / 1000;
     currTag.x = -1 * ((float)(tag.x)) / 1000;
-    currTag.y = -1 * ((float)(tag.y)) / 1000;
+    //currTag.y = -1 * ((float)(tag.y)) / 1000;
     currTag.z = -1 * ((float)(tag.z)) / 1000;
     currTag.rx = ((float)(tag.rx)) / 1000;
-    currTag.ry = ((float)(tag.ry)) / 1000;
-    currTag.rz = ((float)(tag.rz)) / 1000;
-    currTag.w = ((float)(tag.w))/1000;
-    currTag.h = ((float)(tag.h))/1000;
-    currTag.cx = currTag.x - (currTag.w / 2);
+    //currTag.ry = ((float)(tag.ry)) / 1000;
+    //currTag.rz = ((float)(tag.rz)) / 1000;
+    currTag.w = ((float)(tag.w));
+    //currTag.h = ((float)(tag.h))/1000;
+    currTag.cx = currTag.x; //- (currTag.w / 2);
 }
 
 bool OpenMV::checkUART(AprilTagDatum& tag)  
@@ -137,22 +137,22 @@ uint8_t OpenMV::PrintAprilTags()
         Serial.print(currTag.id);
         Serial.print(F(",[w: "));
         Serial.print(currTag.w);
-        Serial.print(F(", h: "));
-        Serial.print(currTag.h);
-        Serial.print(F(", rot: "));
-        Serial.print(currTag.rot);
+        //Serial.print(F(", h: "));
+        //Serial.print(currTag.h);
+        //Serial.print(F(", rot: "));
+        //Serial.print(currTag.rot);
         Serial.print(F(", x: "));
         Serial.print(currTag.x);
-        Serial.print(F(", y: "));
-        Serial.print(currTag.y);
+        //Serial.print(F(", y: "));
+        //Serial.print(currTag.y);
         Serial.print(F(", z: "));
         Serial.print(currTag.z);
         Serial.print(F(", rx: "));
         Serial.print(currTag.rx);
-        Serial.print(F(", ry: "));
-        Serial.print(currTag.ry);
-        Serial.print(F(", rz: "));
-        Serial.print(currTag.rz);
+        //Serial.print(F(", ry: "));
+        //Serial.print(currTag.ry);
+        //Serial.print(F(", rz: "));
+        //Serial.print(currTag.rz);
         Serial.println(F("]"));
         //Serial.println(tag.checksum);
       }
