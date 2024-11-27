@@ -59,24 +59,19 @@ def convToInt(data):
 
 def to_object_block_format(tag):
     pose_data = struct.pack(
-        "hhhhhhhhhhh",
+        "hhhhhhhhhhhh",
         tag.id,
         tag.w,
-        tag.h,
-        convToInt(tag.rotation * 1000),
         convToInt(tag.x_translation * 1000),
-        convToInt(tag.y_translation * 1000),
         convToInt(tag.z_translation * 1000),
         convToInt(tag.x_rotation * 1000),
-        convToInt(tag.y_rotation * 1000),
-        convToInt(tag.z_rotation * 1000),
         0x00 # we need an extra byte in order to calculate the checksum
     )
 
     frame_checksum = checksum(pose_data)
     # pack the struct as: <header 2 bytes> <checksum of data 2 bytes> <combined data 11 bytes>
 
-    out = struct.pack("<hh22s", 0xAA55, frame_checksum, pose_data)
+    out = struct.pack("<hh14s", 0xAA55, frame_checksum, pose_data)
 
     return out
 
@@ -104,7 +99,7 @@ while(True):
 
     if tags and (max_blocks > 0) and (max_blocks_per_id > 0): # new frame
     #for tag in img.find_apriltags(fx=f_x, fy=f_y, cx=c_x, cy=c_y):
-        dat_buf = struct.pack("<h", 0xAA55)
+        #dat_buf = struct.pack("<h", 0xAA55)
 
         # sort by proximity
         for tag in sorted(tags, key = lambda x: abs(x.z_translation), reverse = True)[0:max_blocks]:

@@ -41,9 +41,9 @@ public:
     void Initialize(void);
     float CalcError(void);
     bool CheckIntersection(void);
-    void Calibrate(void);
+    //void Calibrate(void);
     void read(void);
-    void readCalibrated(void);
+    //void readCalibrated(void);
     float readLine(void);
-    void getCalibrationMinMax(void);
+    //void getCalibrationMinMax(void);
 };

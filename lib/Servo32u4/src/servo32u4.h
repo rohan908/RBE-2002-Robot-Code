@@ -36,16 +36,17 @@
 class Servo32U4Base
 {
 protected:
-    uint16_t usMin = 1000;
-    uint16_t usMax = 2000;
+    uint16_t usMin = 500;
+    uint16_t usMax = 2500;
 
     uint8_t feedbackPin = -1;
     bool isAttached = false;
 
-    uint16_t targetPos = 1500;
-    uint16_t currentPos = 1500;
+    uint16_t targetPos = 2300;
+
 
 public:
+    uint16_t currentPos = 1500;
     // Virtual functions defined for each specific class
     virtual void attach(void) = 0;
     virtual void detach(void) = 0;
@@ -54,15 +55,22 @@ public:
     {
         if(targetPos == currentPos) return; // no need to update
 
-        else if(abs(targetPos - currentPos) <= 40) currentPos = targetPos;
-        else if(targetPos > currentPos) currentPos += 40;
-        else if(targetPos < currentPos) currentPos -= 40;
+        else if(abs(targetPos - currentPos) <= 10) currentPos = targetPos;
+        else if(targetPos > currentPos) currentPos += 10;
+        else if(targetPos < currentPos) currentPos -= 10;
 
         writeMicroseconds(currentPos);
+    }
+    bool checkAtTarget() {
+        if(currentPos == targetPos){
+            return true;
+        } 
+        return false;
     }
     uint16_t setMinMaxMicroseconds(uint16_t min, uint16_t max);
 
     virtual void writeMicroseconds(uint16_t microseconds) = 0;
+    
 };
 
 /** \class Servo32U4Pin5

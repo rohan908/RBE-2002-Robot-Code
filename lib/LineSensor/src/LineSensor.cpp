@@ -36,9 +36,9 @@ void LineSensor::read(){
 
 
 float LineSensor::readLine(void){
-  uint32_t avg= 0;
+  uint32_t avg = 0;
   uint16_t sum = 0;
-  readCalibrated();
+  read();
   uint16_t value;
   for (uint8_t i = 0; i < numSensors; i++)
   {
@@ -83,7 +83,7 @@ float LineSensor::readLine(void){
   #endif
   return lastPosition;
 }
-
+/*
 void LineSensor::Calibrate(){
   read();
   for (uint8_t i = 0; i < numSensors; i++){
@@ -95,6 +95,7 @@ void LineSensor::Calibrate(){
     }
   }
   calibrated = true;
+  */
   #ifdef __LINE_FOLLOW_DEBUG__
   Serial.println("Calibrating!");
   /*for (int i = 0; i < NUM_SENSORS; i++){
@@ -104,8 +105,10 @@ void LineSensor::Calibrate(){
   */
   Serial.println();
   #endif
+  /*
 }
-
+*/
+/*
 void LineSensor::readCalibrated()
 {
   // read the needed values
@@ -133,7 +136,7 @@ void LineSensor::readCalibrated()
     }
   }
 }
-
+*/
 
 
 
@@ -154,7 +157,7 @@ float LineSensor::CalcError(void)
 bool LineSensor::CheckIntersection(void)
 {
   bool retVal = false;
-  readCalibrated();
+  read();
   bool isLeftDark;
   bool isRightDark;
   if (isLineBlack){

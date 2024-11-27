@@ -4,6 +4,7 @@
 #include <LSM6.h>
 #include <esp32.h>
 #include <openmv.h>
+#include <servo32u4.h>
 
 class Robot
 {
@@ -32,7 +33,9 @@ protected:
         ROBOT_TURNING,
         ROBOT_MOVE_DISTANCE,
         ROBOT_SEARCHING,
-        ROBOT_APPROACHING
+        ROBOT_APPROACHING,
+        ROBOT_WEIGHING,
+        ROBOT_LIFTING
     };
 
     ROBOT_STATE robotState = ROBOT_IDLE;
@@ -85,6 +88,20 @@ protected:
     // For managing key presses
     String keyString;
 
+    /* Lifter Servo */
+    Servo32U4Pin5 lifterServo;
+    //int currMicro = 1500;
+    
+    #define NUM_WEIGHT_MEAS 50
+    EventTimer lifterTimer;
+    float lifterCounter = 0;
+    uint16_t weightBuffer[NUM_WEIGHT_MEAS] = {0};
+    float weightSum = 0;
+    bool gettingTrashFlag = false;
+    bool liftUp = false;
+
+
+
     /**
      * The LSM6 IMU that is included on the Romi. We keep track of the orientation through
      * Euler angles (roll, pitch, yaw).
@@ -118,6 +135,8 @@ protected:
 
     float tagZTransThreshold = 50;
     uint8_t tagUpdateTimer = 0;
+
+
 
 
 
@@ -155,8 +174,8 @@ protected:
     void EnterLineFollowing(int speed);
     void LineFollowingUpdate(void);
 
-    void EnterCalibrating(void);
-    void UpdateCalibration(void);
+    //void EnterCalibrating(void);
+    //void UpdateCalibration(void);
 
     bool CheckIntersection(void) {return lineSensor.CheckIntersection();}
     void HandleIntersection(void);
@@ -188,12 +207,25 @@ protected:
     void handleApproachedComplete(void);
     void updateApproach(void);
 
+    void enterWeighing(void);
+    bool checkWeighing(void);
+    void handleWeighing(void);
+    float calculateWeight(float weightADC);
+    void updateWeighing(void);
+    void lowerArm(void);
+    void raiseArm(void);
+
+    void enterLiftUp(void);
+    void enterLiftDown(void);
+    bool checkLifting(void);
+    void handleLiftComplete(void);
+
     void handleLostTag(void);
     /* IMU routines */
     void HandleOrientationUpdate(void);
 
     /* For commanding the lifter servo */
-    void SetLifter(uint16_t position);
+    //void SetLifter(uint16_t position);
 
 
     void plotVariable(String name, double var);

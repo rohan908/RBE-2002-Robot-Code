@@ -10,6 +10,9 @@ class ESP32{
          */
         void sendMessage(const String& topic, const String& message);
         void getMessage(void);
+        #ifdef __ESP_DEBUG__
+        void heartbeat();
+        #endif
     
     private:
         bool checkSerial1(void);

@@ -17,8 +17,8 @@ protected:
     uint8_t mvIndex = 0; //for counting bytes
 
     void dataHandle(AprilTagDatum& tag);
-    typedef struct AprilTagInfo{
-        float id, w, h, rot, cx, cy, x, y, z, rx, ry, rz;
+    struct AprilTagInfo{
+        float id, w, cx, x, z, rx;
     };
 
 public:

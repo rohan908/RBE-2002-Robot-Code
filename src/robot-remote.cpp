@@ -44,16 +44,20 @@ void Robot::HandleKeyCode(int16_t keyCode)
         if(robotCtrlMode == CTRL_AUTO) {EnterTeleopMode(); EnterIdleState();}
         else if(robotCtrlMode == CTRL_TELEOP) {EnterAutoMode(); EnterIdleState();}
     }
-    
+    /*
     else if(keyCode == VOLminus){
         if (robotCtrlMode == CTRL_AUTO){
-            EnterCalibrating(); EnterIdleState();
+            //EnterCalibrating(); 
+            EnterIdleState();
         }
+        
         else if (robotCtrlMode == CTRL_CALIBRATING){
             EnterAutoMode(); EnterIdleState();
             //lineSensor.getCalibrationMinMax();
         }
+        
     }
+    */
     
 
     /**
@@ -108,19 +112,28 @@ void Robot::HandleKeyCode(int16_t keyCode)
         switch(keyCode)
         {
             case UP_ARROW:
-                chassis.SetTwist(5, 0);
+                //chassis.SetTwist(5, 0);
+                //lifterServo.setTargetPos(lifterServo.currentPos - 10);
+                raiseArm();
+                Serial.println(lifterServo.currentPos);
                 break;
             case RIGHT_ARROW:
                 chassis.SetTwist(0, -0.25);
                 break;
             case DOWN_ARROW:
-                chassis.SetTwist(-5, 0);
+                //chassis.SetTwist(-5, 0);
+                //lifterServo.setTargetPos(lifterServo.currentPos + 10);
+                lowerArm();
+                Serial.println(lifterServo.currentPos);
                 break;
             case LEFT_ARROW:
                 chassis.SetTwist(0, 0.25);
                 break;
             case ENTER_SAVE:
-                chassis.SetTwist(0, 0);
+                EnterIdleState();
+                break;
+            case VOLminus:
+                enterWeighing();
                 break;
         }
     }
@@ -135,19 +148,19 @@ void Robot::HandleKeyCode(int16_t keyCode)
         {
             case VOLminus:
                 k = keyString.toInt() / 100.0;
-                Serial.print(">Kp:"); Serial.println(k);
+                //Serial.print(">Kp:"); Serial.println(k);
                 chassis.SetMotorKp(k);
                 keyString = "";
                 break;
             case PLAY_PAUSE:
                 k = keyString.toInt() / 100.0;
-                Serial.print(">Ki:"); Serial.println(k);
+                //Serial.print(">Ki:"); Serial.println(k);
                 chassis.SetMotorKi(k);
                 keyString = "";
                 break;
             case VOLplus:
                 k = keyString.toInt() / 100.0;
-                Serial.print(">Kd:"); Serial.println(k);
+                //Serial.print(">Kd:"); Serial.println(k);
                 chassis.SetMotorKd(k);
                 keyString = "";
                 break;
@@ -208,9 +221,10 @@ void Robot::EnterSetupMode(void)
     robotCtrlMode = CTRL_SETUP;
 }
 
-
+/*
 void Robot::EnterCalibrating(void){
     Serial.println("-> Calibrating");
     lineSensor.Calibrate();
     robotCtrlMode = CTRL_CALIBRATING;
 }
+*/
